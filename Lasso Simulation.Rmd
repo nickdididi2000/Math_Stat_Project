@@ -1,0 +1,24 @@
+---
+title: "LASSO Simulation"
+author: "Nick, Will and Ellery"
+date: "3/28/2022"
+output: html_document
+---
+```{r}
+library(MASS)
+library(tidyverse)
+library(GGally)
+```
+
+```{r}
+set.seed(5)
+# create the variance covariance matrix
+sigma<-rbind(c(1,-0.8,-0.7), c(-0.8,1, 0.9), c(-0.7,0.9,1))
+# create the mean vector
+mu<-c(10, 5, 2) 
+# generate the multivariate normal distribution
+df<-as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
+cor(df)
+ggpairs(df)
+```
+
