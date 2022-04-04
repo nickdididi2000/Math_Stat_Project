@@ -1,0 +1,191 @@
+---
+title: "Creating Simulated Dataset"
+author: "NicholasDi"
+date: "3/29/2022"
+output: html_document
+---
+```{r}
+library(MASS)
+library(tidyverse)
+library(GGally)
+library(tidymodels)
+library(readr)
+library(broom)
+library(ggplot2)
+```
+
+
+## Want to Create Dataset with 6 variables. 3 of which will be correlated with one another 
+
+```{r}
+# create the variance covariance matrix
+set.seed(1)
+sigma<-rbind(c(4,0.8,0.7), c(0.8,3, 0.9), c(0.7,0.9,2))
+# create the mean vector
+mu<-c(4,5,5) 
+# generate the multivariate normal distribution
+df<-as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
+
+# Generate Uncorrelated values 
+V4 <- rnorm(1000, mean=10, sd=2)
+V5 <- rnorm(1000, mean=3, sd=7)
+V6 <- rnorm(1000, mean = 8, sd = 10)
+V7 <- rnorm(1000, mean = 3, sd = 3)
+V8 <- rnorm(1000, mean = 5, sd = 1)
+df <- cbind(df, V4, V5, V6, V7, V8)
+#Added Some Random Noise
+df <- df %>% 
+  mutate(y = 5*V1 + 5*V2  +5*V4 +5*V5 +5*V6 + rnorm(1000,4,6))
+```
+
+#Using Linear Regression 
+```{r}
+tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
+
+set.seed(23)
+
+
+lm_spec <-
+    linear_reg() %>% 
+    set_engine(engine = 'lm') %>% 
+    set_mode('regression')
+
+full_rec <- recipe(y ~ ., data = df) %>%
+    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
+    step_nzv(all_predictors()) %>% # removes variables with the same value
+    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
+    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
+
+    
+full_lm_wf <- workflow() %>%
+    add_recipe(full_rec) %>%
+    add_model(lm_spec)
+    
+full_model <- fit(full_lm_wf, data = df) 
+
+full_model %>% tidy()
+```
+
+#Collecting Metrics 
+```{r}
+set.seed(74)
+
+# Create CV folds
+data_cv10 <- vfold_cv(df, v = 10)
+
+fit_cv <- fit_resamples(full_lm_wf,
+              resamples = data_cv10,
+              metrics = metric_set(rmse, mae)
+)
+  
+fit_cv %>% collect_metrics() 
+```
+
+#Using LASSO 
+```{r}
+set.seed(74)
+
+# Create CV folds
+data_cv10 <- vfold_cv(df, v = 10)
+
+# Lasso Model Spec with tune
+lm_lasso_spec_tune <- 
+  linear_reg() %>%
+  set_args(mixture = 1, penalty = tune()) %>% ## mixture = 1 indicates Lasso
+  set_engine(engine = 'glmnet') %>% #note we are using a different engine
+  set_mode('regression') 
+
+# Workflow (Recipe + Model)
+lasso_wf_tune <- workflow() %>% 
+  add_recipe(full_rec) %>%
+  add_model(lm_lasso_spec_tune) 
+
+# Tune Model (trying a variety of values of Lambda penalty)
+penalty_grid <- grid_regular(
+  penalty(range = c(-1, 1)), #log10 transformed 
+  levels = 50)
+
+tune_output <- tune_grid( # new function for tuning hyperparameters
+  lasso_wf_tune, # workflow
+  resamples = data_cv10, # cv folds
+  metrics = metric_set(rmse, mae),
+  grid = penalty_grid # penalty grid defined above
+)
+```
+
+```{r}
+autoplot(tune_output) + theme_classic()
+```
+
+```{r}
+metrics_output <- collect_metrics(tune_output) %>%
+  filter(.metric == 'mae') 
+
+# for Challenge
+hline_info <- metrics_output %>% filter(mean == min(mean))
+vline_info <- metrics_output %>% mutate(low = min(mean), sd = hline_info$std_err[1]) %>% filter(mean <= low + std_err) %>% filter(mean == low | penalty == max(penalty))
+
+
+metrics_output %>%
+    ggplot(aes(x = penalty, y = mean)) + 
+    geom_point() + 
+    geom_line() + 
+    geom_hline(data = hline_info, aes(yintercept = mean + std_err), linetype = 'dashed') + #Challenge
+    geom_vline(data = vline_info, aes(xintercept = penalty), linetype = 'dashed') + #Challenge
+    ylim(c(1.5,3)) + #Challenge
+    labs(x = 'Amount of Regularization', y = 'CV MAE') + 
+    scale_x_log10() + 
+    theme_classic()
+```
+
+```{r}
+#Select Best Penalty 
+best_penalty <- select_best(tune_output, metric = 'mae') # choose penalty value based on lowest mae
+best_penalty
+best_se_penalty <- select_by_one_std_err(tune_output, metric = 'mae', desc(penalty)) # choose penalty value based on the largest penalty within 1 se of the lowest CV MAE
+best_se_penalty #more regulaization -> smaller model 
+```
+
+```{r}
+final_wf <- finalize_workflow(lasso_wf_tune, best_penalty) # incorporates penalty value to workflow
+final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) # incorporates penalty value to workflow
+
+final_fit <- fit(final_wf, data = df)
+final_fit_se <- fit(final_wf_se, data = df)
+
+
+tidy(final_fit_se)
+```
+
+```{r}
+glmnet_output <- final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # way to get the original glmnet output
+
+lambdas <- glmnet_output$lambda
+coefs_lambdas <- 
+  coefficients(glmnet_output, s = lambdas )  %>% 
+  as.matrix() %>%  
+  t() %>% 
+  as.data.frame() %>% 
+  mutate(lambda = lambdas ) %>% 
+  select(lambda, everything(), -`(Intercept)`) %>% 
+  pivot_longer(cols = -lambda, 
+               names_to = "term", 
+               values_to = "coef") %>%
+  mutate(var = map_chr(stringr::str_split(term,"_"),~.[1]))
+
+coefs_lambdas %>%
+  ggplot(aes(x = lambda, y = coef, group = term, color = var)) +
+  geom_line() +
+  geom_vline(xintercept = best_se_penalty %>% pull(penalty), linetype = 'dashed') + 
+  theme_classic() + 
+  theme(legend.position = "bottom", legend.text=element_text(size=8))
+```
+```
+
+
+
+
+
+
+
+
