@@ -20,7 +20,9 @@ library(ggplot2)
 ```{r}
 # create the variance covariance matrix
 set.seed(1)
-sigma<-rbind(c(4,0.8,0.7), c(0.8,3, 0.9), c(0.7,0.9,2))
+sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
+
+sigma <- 5*sigma
 # create the mean vector
 mu<-c(4,5,5) 
 # generate the multivariate normal distribution
@@ -34,35 +36,110 @@ V7 <- rnorm(1000, mean = 3, sd = 3)
 V8 <- rnorm(1000, mean = 5, sd = 1)
 df <- cbind(df, V4, V5, V6, V7, V8)
 #Added Some Random Noise
-df <- df %>% 
-  mutate(y = 5*V1 + 5*V2  +5*V4 +5*V5 +5*V6 + rnorm(1000,4,6))
+df1 <- df %>% 
+  mutate(y = 5*V2 + 5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
+# create the variance covariance matrix
+
+set.seed(2)
+sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
+# create the mean vector
+mu<-c(4,5,5) 
+# generate the multivariate normal distribution
+df<-as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
+
+# Generate Uncorrelated values 
+V4 <- rnorm(1000, mean=10, sd=2)
+V5 <- rnorm(1000, mean=3, sd=7)
+V6 <- rnorm(1000, mean = 8, sd = 10)
+V7 <- rnorm(1000, mean = 3, sd = 3)
+V8 <- rnorm(1000, mean = 5, sd = 1)
+df <- cbind(df, V4, V5, V6, V7, V8)
+#Added Some Random Noise
+df2 <- df %>% 
+  mutate(y = 5*V2 + 5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
+
+set.seed(32)
+sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
+# create the mean vector
+mu<-c(4,5,5) 
+# generate the multivariate normal distribution
+df<-as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
+
+# Generate Uncorrelated values 
+V4 <- rnorm(1000, mean=10, sd=2)
+V5 <- rnorm(1000, mean=3, sd=7)
+V6 <- rnorm(1000, mean = 8, sd = 10)
+V7 <- rnorm(1000, mean = 3, sd = 3)
+V8 <- rnorm(1000, mean = 5, sd = 1)
+df <- cbind(df, V4, V5, V6, V7, V8)
+#Added Some Random Noise
+df3 <- df %>% 
+  mutate(y = 5*V2+5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
 ```
 
 #Using Linear Regression 
 ```{r}
 tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
-
 set.seed(23)
-
-
 lm_spec <-
     linear_reg() %>% 
     set_engine(engine = 'lm') %>% 
     set_mode('regression')
-
-full_rec <- recipe(y ~ ., data = df) %>%
+full_rec <- recipe(y ~ ., data = df1) %>%
     # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
     step_nzv(all_predictors()) %>% # removes variables with the same value
     step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
     step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
-
-    
 full_lm_wf <- workflow() %>%
     add_recipe(full_rec) %>%
     add_model(lm_spec)
-    
-full_model <- fit(full_lm_wf, data = df) 
+full_model <- fit(full_lm_wf, data = df1) 
+full_model %>% tidy()
+```
 
+```{r}
+full_rec <- recipe(y ~ ., data = df2) %>%
+    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
+    step_nzv(all_predictors()) %>% # removes variables with the same value
+    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
+    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
+full_lm_wf <- workflow() %>%
+    add_recipe(full_rec) %>%
+    add_model(lm_spec)
+full_model <- fit(full_lm_wf, data = df2) 
+full_model %>% tidy()
+```
+
+```{r}
+full_rec <- recipe(y ~ ., data = df3) %>%
+    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
+    step_nzv(all_predictors()) %>% # removes variables with the same value
+    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
+    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
+full_lm_wf <- workflow() %>%
+    add_recipe(full_rec) %>%
+    add_model(lm_spec)
+full_model <- fit(full_lm_wf, data = df3) 
+full_model %>% tidy()
+```
+
+
+```{r}
+tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
+set.seed(10)
+lm_spec <-
+    linear_reg() %>% 
+    set_engine(engine = 'lm') %>% 
+    set_mode('regression')
+full_rec <- recipe(y ~ ., data = df1) %>%
+    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
+    step_nzv(all_predictors()) %>% # removes variables with the same value
+    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
+    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
+full_lm_wf <- workflow() %>%
+    add_recipe(full_rec) %>%
+    add_model(lm_spec)
+full_model <- fit(full_lm_wf, data = df1) 
 full_model %>% tidy()
 ```
 
@@ -71,7 +148,7 @@ full_model %>% tidy()
 set.seed(74)
 
 # Create CV folds
-data_cv10 <- vfold_cv(df, v = 10)
+data_cv10 <- vfold_cv(df1, v = 10)
 
 fit_cv <- fit_resamples(full_lm_wf,
               resamples = data_cv10,
@@ -86,7 +163,7 @@ fit_cv %>% collect_metrics()
 set.seed(74)
 
 # Create CV folds
-data_cv10 <- vfold_cv(df, v = 10)
+data_cv10 <- vfold_cv(df1, v = 10)
 
 # Lasso Model Spec with tune
 lm_lasso_spec_tune <- 
@@ -102,7 +179,7 @@ lasso_wf_tune <- workflow() %>%
 
 # Tune Model (trying a variety of values of Lambda penalty)
 penalty_grid <- grid_regular(
-  penalty(range = c(-1, 1)), #log10 transformed 
+  penalty(range = c(-3, 3)), #log10 transformed 
   levels = 50)
 
 tune_output <- tune_grid( # new function for tuning hyperparameters
@@ -150,8 +227,8 @@ best_se_penalty #more regulaization -> smaller model
 final_wf <- finalize_workflow(lasso_wf_tune, best_penalty) # incorporates penalty value to workflow
 final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) # incorporates penalty value to workflow
 
-final_fit <- fit(final_wf, data = df)
-final_fit_se <- fit(final_wf_se, data = df)
+final_fit <- fit(final_wf, data = df1)
+final_fit_se <- fit(final_wf_se, data = df1)
 
 
 tidy(final_fit_se)
@@ -180,6 +257,20 @@ coefs_lambdas %>%
   theme_classic() + 
   theme(legend.position = "bottom", legend.text=element_text(size=8))
 ```
+
+#Collecting Metrics 
+```{r}
+set.seed(74)
+
+# Create CV folds
+data_cv10 <- vfold_cv(df1, v = 10)
+
+fit_cv <- fit_resamples(final_fit_se,
+              resamples = data_cv10,
+              metrics = metric_set(rmse, mae)
+)
+  
+fit_cv %>% collect_metrics() 
 ```
 
 
