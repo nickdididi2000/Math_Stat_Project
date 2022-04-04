@@ -37,7 +37,7 @@ V8 <- rnorm(1000, mean = 5, sd = 1)
 df <- cbind(df, V4, V5, V6, V7, V8)
 #Added Some Random Noise
 df1 <- df %>% 
-  mutate(y = 5*V2 + 5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
+  mutate(y = 5*V2 +5*V4+5*V5+5*V6 + rnorm(1000,0,6))
 # create the variance covariance matrix
 
 set.seed(2)
@@ -75,6 +75,7 @@ df <- cbind(df, V4, V5, V6, V7, V8)
 #Added Some Random Noise
 df3 <- df %>% 
   mutate(y = 5*V2+5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
+lm(y~., data = df1)
 ```
 
 #Using Linear Regression 
@@ -90,6 +91,7 @@ full_rec <- recipe(y ~ ., data = df1) %>%
     step_nzv(all_predictors()) %>% # removes variables with the same value
     step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
     step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
+
 full_lm_wf <- workflow() %>%
     add_recipe(full_rec) %>%
     add_model(lm_spec)
@@ -179,8 +181,8 @@ lasso_wf_tune <- workflow() %>%
 
 # Tune Model (trying a variety of values of Lambda penalty)
 penalty_grid <- grid_regular(
-  penalty(range = c(-3, 3)), #log10 transformed 
-  levels = 50)
+  penalty(range = c(-3, 2)), #log10 transformed 
+  levels = 100)
 
 tune_output <- tune_grid( # new function for tuning hyperparameters
   lasso_wf_tune, # workflow
