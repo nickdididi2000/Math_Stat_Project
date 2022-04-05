@@ -56,7 +56,7 @@ V8 <- rnorm(1000, mean = 5, sd = 1)
 df <- cbind(df, V4, V5, V6, V7, V8)
 #Added Some Random Noise
 df2 <- df %>% 
-  mutate(y = 5*V2 + 5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
+  mutate(y = 5*V2+ 5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
 
 set.seed(32)
 sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
@@ -75,7 +75,8 @@ df <- cbind(df, V4, V5, V6, V7, V8)
 #Added Some Random Noise
 df3 <- df %>% 
   mutate(y = 5*V2+5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
-lm(y~., data = df1)
+lm <- lm(y~., data = df1)
+summary(lm)
 ```
 
 #Using Linear Regression 
