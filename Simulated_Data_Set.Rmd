@@ -22,11 +22,14 @@ library(ggplot2)
 set.seed(1)
 sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
 
+#Scale up the covariance matrix
 sigma <- 5*sigma
+
 # create the mean vector
 mu<-c(4,5,5) 
+
 # generate the multivariate normal distribution
-df<-as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
+df <- as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
 
 # Generate Uncorrelated values 
 V4 <- rnorm(1000, mean=10, sd=2)
@@ -35,51 +38,21 @@ V6 <- rnorm(1000, mean = 8, sd = 10)
 V7 <- rnorm(1000, mean = 3, sd = 3)
 V8 <- rnorm(1000, mean = 5, sd = 1)
 df <- cbind(df, V4, V5, V6, V7, V8)
-#Added Some Random Noise
+
+#Make the Y Variable and Added Some Random Noise
 df1 <- df %>% 
   mutate(y = 5*V2 +5*V4+5*V5+5*V6 + rnorm(1000,0,6))
-# create the variance covariance matrix
+```
 
-set.seed(2)
-sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
-# create the mean vector
-mu<-c(4,5,5) 
-# generate the multivariate normal distribution
-df<-as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
-
-# Generate Uncorrelated values 
-V4 <- rnorm(1000, mean=10, sd=2)
-V5 <- rnorm(1000, mean=3, sd=7)
-V6 <- rnorm(1000, mean = 8, sd = 10)
-V7 <- rnorm(1000, mean = 3, sd = 3)
-V8 <- rnorm(1000, mean = 5, sd = 1)
-df <- cbind(df, V4, V5, V6, V7, V8)
-#Added Some Random Noise
-df2 <- df %>% 
-  mutate(y = 5*V2+ 5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
-
-set.seed(32)
-sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
-# create the mean vector
-mu<-c(4,5,5) 
-# generate the multivariate normal distribution
-df<-as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
-
-# Generate Uncorrelated values 
-V4 <- rnorm(1000, mean=10, sd=2)
-V5 <- rnorm(1000, mean=3, sd=7)
-V6 <- rnorm(1000, mean = 8, sd = 10)
-V7 <- rnorm(1000, mean = 3, sd = 3)
-V8 <- rnorm(1000, mean = 5, sd = 1)
-df <- cbind(df, V4, V5, V6, V7, V8)
-#Added Some Random Noise
-df3 <- df %>% 
-  mutate(y = 5*V2+5*V3+5*V4 +5*V5+5*V6 + rnorm(1000,4,6))
+## What Happens if we use a linear model? 
+```{r}
 lm <- lm(y~., data = df1)
 summary(lm)
 ```
 
-#Using Linear Regression 
+Seems to have gotten most of the relevant variables and their respective coefficients. 
+
+#Using Linear Regression - with Cross Validation
 ```{r}
 tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
 set.seed(23)
@@ -88,9 +61,7 @@ lm_spec <-
     set_engine(engine = 'lm') %>% 
     set_mode('regression')
 full_rec <- recipe(y ~ ., data = df1) %>%
-    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
-    step_nzv(all_predictors()) %>% # removes variables with the same value
-    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
+    step_nzv(all_predictors())  %>% # important standardization step for LASSO
     step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
 
 full_lm_wf <- workflow() %>%
@@ -100,53 +71,7 @@ full_model <- fit(full_lm_wf, data = df1)
 full_model %>% tidy()
 ```
 
-```{r}
-full_rec <- recipe(y ~ ., data = df2) %>%
-    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
-    step_nzv(all_predictors()) %>% # removes variables with the same value
-    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
-    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
-full_lm_wf <- workflow() %>%
-    add_recipe(full_rec) %>%
-    add_model(lm_spec)
-full_model <- fit(full_lm_wf, data = df2) 
-full_model %>% tidy()
-```
-
-```{r}
-full_rec <- recipe(y ~ ., data = df3) %>%
-    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
-    step_nzv(all_predictors()) %>% # removes variables with the same value
-    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
-    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
-full_lm_wf <- workflow() %>%
-    add_recipe(full_rec) %>%
-    add_model(lm_spec)
-full_model <- fit(full_lm_wf, data = df3) 
-full_model %>% tidy()
-```
-
-
-```{r}
-tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
-set.seed(10)
-lm_spec <-
-    linear_reg() %>% 
-    set_engine(engine = 'lm') %>% 
-    set_mode('regression')
-full_rec <- recipe(y ~ ., data = df1) %>%
-    # update_role(model, new_role = 'ID') %>% # we want to keep the name of the model but not as a predictor or outcome
-    step_nzv(all_predictors()) %>% # removes variables with the same value
-    step_normalize(all_numeric_predictors()) %>% # important standardization step for LASSO
-    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
-full_lm_wf <- workflow() %>%
-    add_recipe(full_rec) %>%
-    add_model(lm_spec)
-full_model <- fit(full_lm_wf, data = df1) 
-full_model %>% tidy()
-```
-
-#Collecting Metrics 
+## Collecting Metrics for Prediction Fit.  
 ```{r}
 set.seed(74)
 
@@ -162,6 +87,9 @@ fit_cv %>% collect_metrics()
 ```
 
 #Using LASSO 
+
+Below this code splits the data up into 10 folds. We will test 100 different lambda (penalty) values from $10^{-3}$ to $10^{2}$. 
+
 ```{r}
 set.seed(74)
 
@@ -172,7 +100,7 @@ data_cv10 <- vfold_cv(df1, v = 10)
 lm_lasso_spec_tune <- 
   linear_reg() %>%
   set_args(mixture = 1, penalty = tune()) %>% ## mixture = 1 indicates Lasso
-  set_engine(engine = 'glmnet') %>% #note we are using a different engine
+  set_engine(engine = 'glmnet') %>% 
   set_mode('regression') 
 
 # Workflow (Recipe + Model)
@@ -182,7 +110,7 @@ lasso_wf_tune <- workflow() %>%
 
 # Tune Model (trying a variety of values of Lambda penalty)
 penalty_grid <- grid_regular(
-  penalty(range = c(-3, 2)), #log10 transformed 
+  penalty(range = c(-1, 5)), #log10 transformed 
   levels = 100)
 
 tune_output <- tune_grid( # new function for tuning hyperparameters
@@ -193,6 +121,7 @@ tune_output <- tune_grid( # new function for tuning hyperparameters
 )
 ```
 
+#Below We can see how MAE and RMSE changes as our coefficient increases 
 ```{r}
 autoplot(tune_output) + theme_classic()
 ```
@@ -205,19 +134,19 @@ metrics_output <- collect_metrics(tune_output) %>%
 hline_info <- metrics_output %>% filter(mean == min(mean))
 vline_info <- metrics_output %>% mutate(low = min(mean), sd = hline_info$std_err[1]) %>% filter(mean <= low + std_err) %>% filter(mean == low | penalty == max(penalty))
 
-
+#Might Take This Out
 metrics_output %>%
     ggplot(aes(x = penalty, y = mean)) + 
     geom_point() + 
     geom_line() + 
     geom_hline(data = hline_info, aes(yintercept = mean + std_err), linetype = 'dashed') + #Challenge
     geom_vline(data = vline_info, aes(xintercept = penalty), linetype = 'dashed') + #Challenge
-    ylim(c(1.5,3)) + #Challenge
+    ylim(c(-50,50)) + #Challenge
     labs(x = 'Amount of Regularization', y = 'CV MAE') + 
     scale_x_log10() + 
     theme_classic()
 ```
-
+#Select the best penalty by MAE. 
 ```{r}
 #Select Best Penalty 
 best_penalty <- select_best(tune_output, metric = 'mae') # choose penalty value based on lowest mae
@@ -275,6 +204,55 @@ fit_cv <- fit_resamples(final_fit_se,
   
 fit_cv %>% collect_metrics() 
 ```
+
+#Question that can be asked is does a higher MAE and RMSE mean that the model was good or bad? Note: The values are higher than a regular linear regression. 
+
+#Ridge Regression
+```{r}
+ridge_spec <- linear_reg(penalty = 100, mixture=0) %>% 
+  set_engine("glmnet")
+results <- fit_resamples(ridge_spec,
+                         preprocessor = full_rec,
+                         resamples = data_cv10)
+results %>% collect_metrics()
+```
+
+
+```{r}
+penalty_spec <- linear_reg(penalty = tune(), mixture =tune()) %>% 
+  set_engine("glmnet")
+grid <- expand_grid(penalty = seq(0,5, by = 0.10),
+                    mixture = seq(1,1, by =0)) #Dont know how to get rid of this
+results <- tune_grid(penalty_spec, 
+                     preprocessor = full_rec, 
+                     grid = grid,
+                     resamples = data_cv10)
+results %>% 
+  collect_metrics() %>% 
+  filter(.metric == "rmse") %>% 
+  arrange(mean)
+
+results %>%  collect_metrics() %>% 
+  filter(.metric == "rmse") %>% 
+  ggplot(aes(x = penalty, y = mean, color = factor(mixture), group = factor(mixture)))+
+  geom_line()+
+  geom_point()+
+  labs(y = "RMSE")
+```
+
+#Selecting the best 
+```{r}
+ridge_wf_tune <- workflow() %>% 
+  add_recipe(full_rec) %>%
+  add_model(ridge_spec) 
+
+ridge_best_se_penalty <- select_by_one_std_err(results, metric = 'rmse', desc(penalty)) # choose penalty value based on the largest penalty within 1 se of the lowest CV MAE
+
+ridge_final_wf_se <- finalize_workflow(ridge_wf_tune, ridge_best_se_penalty) # incorporates penalty value to workflow
+ridge_final_fit_se <- fit(ridge_final_wf_se, data = df1)
+tidy(ridge_final_fit_se)
+```
+
 
 
 
