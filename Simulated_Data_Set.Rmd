@@ -221,7 +221,7 @@ results %>% collect_metrics()
 ```{r}
 penalty_spec <- linear_reg(penalty = tune(), mixture =tune()) %>% 
   set_engine("glmnet")
-grid <- expand_grid(penalty = seq(0,5, by = 0.10),
+grid <- expand_grid(penalty = seq(0,.5, by = 0.05),
                     mixture = seq(1,1, by =0)) #Dont know how to get rid of this
 results <- tune_grid(penalty_spec, 
                      preprocessor = full_rec, 
@@ -244,16 +244,41 @@ results %>%  collect_metrics() %>%
 ```{r}
 ridge_wf_tune <- workflow() %>% 
   add_recipe(full_rec) %>%
-  add_model(ridge_spec) 
+  add_model(penalty_spec) 
 
 ridge_best_se_penalty <- select_by_one_std_err(results, metric = 'rmse', desc(penalty)) # choose penalty value based on the largest penalty within 1 se of the lowest CV MAE
+best_penalty <- select_best(results, metric = 'rmse') # choose penalty value based on lowest mae
+
 
 ridge_final_wf_se <- finalize_workflow(ridge_wf_tune, ridge_best_se_penalty) # incorporates penalty value to workflow
 ridge_final_fit_se <- fit(ridge_final_wf_se, data = df1)
 tidy(ridge_final_fit_se)
 ```
 
+#Visualize Ridge Regression Coefficients 
+```{r}
+glmnet_output_ridge <- ridge_final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # way to get the original glmnet output
 
+lambdas <- glmnet_output_ridge$lambda
+coefs_lambdas <- 
+  coefficients(glmnet_output_ridge, s = lambdas )  %>% 
+  as.matrix() %>%  
+  t() %>% 
+  as.data.frame() %>% 
+  mutate(lambda = lambdas ) %>% 
+  select(lambda, everything(), -`(Intercept)`) %>% 
+  pivot_longer(cols = -lambda, 
+               names_to = "term", 
+               values_to = "coef") %>%
+  mutate(var = map_chr(stringr::str_split(term,"_"),~.[1]))
+
+coefs_lambdas %>%
+  ggplot(aes(x = lambda, y = coef, group = term, color = var)) +
+  geom_line() +
+  geom_vline(xintercept = best_se_penalty %>% pull(penalty), linetype = 'dashed') + 
+  theme_classic() + 
+  theme(legend.position = "bottom", legend.text=element_text(size=8))
+```
 
 
 
