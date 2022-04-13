@@ -12,6 +12,8 @@ library(tidymodels)
 library(readr)
 library(broom)
 library(ggplot2)
+library(stringr)
+library(janitor)
 ```
 
 
@@ -29,7 +31,7 @@ sigma <- 5*sigma
 mu<-c(4,5,5) 
 
 # generate the multivariate normal distribution
-df <- as.data.frame(mvrnorm(n=1000, mu=mu, Sigma=sigma))
+df <- as.data.frame(mvrnorm(n=10000, mu=mu, Sigma=sigma))
 
 # Generate Uncorrelated values 
 V4 <- rnorm(1000, mean=10, sd=2)
@@ -41,18 +43,58 @@ df <- cbind(df, V4, V5, V6, V7, V8)
 
 #Make the Y Variable and Added Some Random Noise
 df1 <- df %>% 
-  mutate(y = 5*V2 +5*V4+5*V5+5*V6 + rnorm(1000,0,6))
+  mutate(y = 5*V2+5*V4+5*V5+5*V6+rnorm(10000,0,6))
+
+y = y
+'x' + as.character(3)
+str_c('x',as.character(3))
+df1 %>% 
+  mutate(str_c('x',as.character(3)) = 1)
+df1 %>% 
+  mutate(x[i] = 1)
+
+for(i in 1:10){
+  am <- paste("y", i, sep = "")
+  df_test <- df %>% 
+    assign(nam, rnorm(3)+d)}
+head(df_test)
 ```
 
 ## What Happens if we use a linear model? 
+We will take a random sample of 1000 and fit a model on those values. 
+
+First, we will make a data frame of outputs. We will start with one and then begin apprehending.  
+
 ```{r}
-lm <- lm(y~., data = df1)
-summary(lm)
+samples <- sample_n(df1,100)
+lm <- lm(y~., data = samples)
+matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
+matrix_coef
+my_estimates <- matrix_coef[ , 1]  
+base <- as.data.frame(my_estimates)
+base <- t(base)
+base
+```
+let us do this 100 times total and append them to the dataframe
+
+```{r}
+for(i in 1:100){
+  samples <- sample_n(df1,100)
+  lm <- lm(y~., data = samples)
+  matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
+  my_estimates <- matrix_coef[ , 1]  
+  temp <- as.data.frame(my_estimates)
+  temp <- t(temp)
+  base <- rbind(base, temp)
+}
+
+base <- as.data.frame(base)
 ```
 
 Seems to have gotten most of the relevant variables and their respective coefficients. 
 
 #Using Linear Regression - with Cross Validation
+
 ```{r}
 tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
 set.seed(23)
@@ -70,6 +112,7 @@ full_lm_wf <- workflow() %>%
 full_model <- fit(full_lm_wf, data = df1) 
 full_model %>% tidy()
 ```
+
 
 ## Collecting Metrics for Prediction Fit.  
 ```{r}
@@ -161,10 +204,36 @@ final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) # incorporates 
 
 final_fit <- fit(final_wf, data = df1)
 final_fit_se <- fit(final_wf_se, data = df1)
-
-
-tidy(final_fit_se)
 ```
+
+To get bias and variance, we will do something very similar as above for linear models. We will fit a lasso based off 100 randomly sampled observations and build a dataset of observations and their coefficients. 
+
+```{r}
+temp <- tidy(final_fit_se) %>% 
+  select(term, estimate) %>% 
+  as.data.frame()
+base_lasso <- t(temp)
+base_lasso <- as.data.frame(base_lasso)
+base_lasso <- base_lasso %>% 
+  row_to_names(row_number = 1) %>% 
+  mutate(across(everything(),as.numeric))
+```
+
+This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
+
+```{r}
+for(i in 1:100){
+  data <- sample_n(df1, 1000)
+  final_fit_se <- fit(final_wf_se, data = data)
+  
+  temp <- tidy(final_fit_se) %>% 
+    pull(estimate)  
+  names(temp) <- tidy(final_fit_se) %>% pull(term)
+
+  base_lasso <- bind_rows(base_lasso, temp)
+}
+```
+
 
 ```{r}
 glmnet_output <- final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # way to get the original glmnet output
