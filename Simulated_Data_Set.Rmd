@@ -14,6 +14,7 @@ library(broom)
 library(ggplot2)
 library(stringr)
 library(janitor)
+library(reshape)
 ```
 
 
@@ -45,54 +46,7 @@ df <- cbind(df, V4, V5, V6, V7, V8)
 df1 <- df %>% 
   mutate(y = 5*V2+5*V4+5*V5+5*V6+rnorm(10000,0,6))
 
-y = y
-'x' + as.character(3)
-str_c('x',as.character(3))
-df1 %>% 
-  mutate(str_c('x',as.character(3)) = 1)
-df1 %>% 
-  mutate(x[i] = 1)
-
-for(i in 1:10){
-  am <- paste("y", i, sep = "")
-  df_test <- df %>% 
-    assign(nam, rnorm(3)+d)}
-head(df_test)
 ```
-
-## What Happens if we use a linear model? 
-We will take a random sample of 1000 and fit a model on those values. 
-
-First, we will make a data frame of outputs. We will start with one and then begin apprehending.  
-
-```{r}
-samples <- sample_n(df1,100)
-lm <- lm(y~., data = samples)
-matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
-matrix_coef
-my_estimates <- matrix_coef[ , 1]  
-base <- as.data.frame(my_estimates)
-base <- t(base)
-base
-```
-let us do this 100 times total and append them to the dataframe
-
-```{r}
-for(i in 1:100){
-  samples <- sample_n(df1,100)
-  lm <- lm(y~., data = samples)
-  matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
-  my_estimates <- matrix_coef[ , 1]  
-  temp <- as.data.frame(my_estimates)
-  temp <- t(temp)
-  base <- rbind(base, temp)
-}
-
-base <- as.data.frame(base)
-```
-
-Seems to have gotten most of the relevant variables and their respective coefficients. 
-
 #Using Linear Regression - with Cross Validation
 
 ```{r}
@@ -205,35 +159,6 @@ final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) # incorporates 
 final_fit <- fit(final_wf, data = df1)
 final_fit_se <- fit(final_wf_se, data = df1)
 ```
-
-To get bias and variance, we will do something very similar as above for linear models. We will fit a lasso based off 100 randomly sampled observations and build a dataset of observations and their coefficients. 
-
-```{r}
-temp <- tidy(final_fit_se) %>% 
-  select(term, estimate) %>% 
-  as.data.frame()
-base_lasso <- t(temp)
-base_lasso <- as.data.frame(base_lasso)
-base_lasso <- base_lasso %>% 
-  row_to_names(row_number = 1) %>% 
-  mutate(across(everything(),as.numeric))
-```
-
-This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
-
-```{r}
-for(i in 1:100){
-  data <- sample_n(df1, 1000)
-  final_fit_se <- fit(final_wf_se, data = data)
-  
-  temp <- tidy(final_fit_se) %>% 
-    pull(estimate)  
-  names(temp) <- tidy(final_fit_se) %>% pull(term)
-
-  base_lasso <- bind_rows(base_lasso, temp)
-}
-```
-
 
 ```{r}
 glmnet_output <- final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # way to get the original glmnet output
@@ -349,8 +274,173 @@ coefs_lambdas %>%
   theme(legend.position = "bottom", legend.text=element_text(size=8))
 ```
 
+##Bias and Variance in Coefficient Estimates 
+
+To get bias and variance, we will do something very similar as above for linear models. We will fit a lasso based off 100 randomly sampled observations and build a dataset of observations and their coefficients. 
+
+# What Happens if we use a linear model? 
+We will take a random sample of 1000 and fit a model on those values. 
+
+First, we will make a data frame of outputs. We will start with one and then begin apprehending.  
+
+```{r}
+samples <- sample_n(df1,100)
+lm <- lm(y~., data = samples)
+matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
+matrix_coef
+my_estimates <- matrix_coef[ , 1]  
+base <- as.data.frame(my_estimates)
+base <- t(base)
+base
+```
+let us do this 100 times total and append them to the dataframe
+
+```{r}
+for(i in 1:100){
+  samples <- sample_n(df1,100)
+  lm <- lm(y~., data = samples)
+  matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
+  my_estimates <- matrix_coef[ , 1]  
+  temp <- as.data.frame(my_estimates)
+  temp <- t(temp)
+  base <- rbind(base, temp)
+}
+
+base <- as.data.frame(base)
+```
+
+Seems to have gotten most of the relevant variables and their respective coefficients
+```{r}
+temp <- tidy(final_fit_se) %>% 
+  select(term, estimate) %>% 
+  as.data.frame()
+base_lasso <- t(temp)
+base_lasso <- as.data.frame(base_lasso)
+base_lasso <- base_lasso %>% 
+  row_to_names(row_number = 1) %>% 
+  mutate(across(everything(),as.numeric))
+```
+
+This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
+
+```{r}
+for(i in 1:100){
+  data <- sample_n(df1, 1000)
+  final_fit_se <- fit(final_wf_se, data = data)
+  
+  temp <- tidy(final_fit_se) %>% 
+    pull(estimate)  
+  names(temp) <- tidy(final_fit_se) %>% pull(term)
+
+  base_lasso <- bind_rows(base_lasso, temp)
+}
+```
+
+```{r}
+colnames(base) <- paste(colnames(base),"lm",sep="_")
+colnames(base_lasso) <- paste(colnames(base_lasso),"lasso",sep="_")
+
+combined <- cbind(base, base_lasso)
+
+combined %>% 
+  select(V5_lm, V5_lasso) %>% 
+  melt() %>% ggplot(aes(x=value, fill = variable))+
+  geom_density(alpha = 0.5) + 
+  geom_vline(xintercept = 5, linetype="dotted", 
+                color = "blue", size=1.5)
+
+base %>% 
+  rename
+base %>% 
+  summarize_all(mean)
+base_lasso %>% 
+  summarize_all(mean)
+```
+```{r}
+base %>% ggplot(aes(x = V1))+
+  geom_density()
+base_lasso %>% ggplot(aes(x = V1))+
+  geom_density()
+base %>% ggplot(aes(x = V2))+
+  geom_density()
+base_lasso %>% ggplot(aes(x = V2))+
+  geom_density()
+```
 
 
+
+## With Different Penalties 
+```{r}
+data_diff_penalty <- sample_n(df1, 1000)
+data_cv10 <- vfold_cv(data_diff_penalty, v = 10)
+
+lm_lasso_spec_tune <- 
+  linear_reg() %>%
+  set_args(mixture = 1, penalty = tune()) %>%
+  set_engine(engine = 'glmnet') %>% 
+  set_mode('regression') 
+
+# Workflow (Recipe + Model)
+lasso_wf_tune <- workflow() %>% 
+  add_recipe(full_rec) %>%
+  add_model(lm_lasso_spec_tune) 
+
+# Tune Model (trying a variety of values of Lambda penalty)
+penalty_grid <- grid_regular(
+  penalty(range = c(-1, 5)), #log10 transformed 
+  levels = 100)
+
+tune_output <- tune_grid( 
+  lasso_wf_tune, 
+  resamples = data_cv10,
+  metrics = metric_set(rmse, mae),
+  grid = penalty_grid 
+)
+
+best_se_penalty <- select_by_one_std_err(tune_output, metric = 'mae', desc(penalty)) 
+final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) 
+final_fit_se <- fit(final_wf_se, data = data_diff_penalty)
+temp <- tidy(final_fit_se) %>% 
+  select(term, estimate) %>% 
+  as.data.frame()
+base_lasso_diff_penn <- t(temp)
+base_lasso_diff_penn <- as.data.frame(base_lasso_diff_penn)
+base_lasso_diff_penn <- base_lasso_diff_penn %>% 
+  row_to_names(row_number = 1) %>% 
+  mutate(across(everything(), as.numeric))
+```
+
+
+This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
+
+```{r}
+for(i in 1:100){
+  data_diff_penalty <- sample_n(df1, 1000)
+  data_cv10 <- vfold_cv(data_diff_penalty, v = 10)
+  
+  tune_output <- tune_grid( 
+    lasso_wf_tune, 
+    resamples = data_cv10,
+    metrics = metric_set(rmse, mae),
+    grid = penalty_grid 
+    )
+  
+  best_se_penalty <- select_by_one_std_err(tune_output, metric = 'mae', desc(penalty))
+  final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) 
+  final_fit_se <- fit(final_wf_se, data = data_diff_penalty)
+  
+  temp <- tidy(final_fit_se) %>% 
+    pull(estimate)  
+  names(temp) <- tidy(final_fit_se) %>% pull(term)
+
+  base_lasso_diff_penn <- bind_rows(base_lasso_diff_penn, temp)
+}
+
+write.csv(base_lasso_diff_penn, "lasso_diff_penn.csv")
+base_lasso_diff_penn <- read.csv("lasso_diff_penn.csv")
+mean(base_lasso_diff_penn$V5)
+mean(base_lasso$V5)
+```
 
 
 
