@@ -203,7 +203,7 @@ fit_cv %>% collect_metrics()
 
 #Ridge Regression
 ```{r}
-ridge_spec <- linear_reg(penalty = 100, mixture=0) %>% 
+ridge_spec <- linear_reg(penalty = 100, mixture=0) %>%
   set_engine("glmnet")
 results <- fit_resamples(ridge_spec,
                          preprocessor = full_rec,
@@ -213,32 +213,32 @@ results %>% collect_metrics()
 
 
 ```{r}
-penalty_spec <- linear_reg(penalty = tune(), mixture =tune()) %>% 
+penalty_spec <- linear_reg(penalty = tune(), mixture =tune()) %>%
   set_engine("glmnet")
 grid <- expand_grid(penalty = seq(0,.5, by = 0.05),
                     mixture = seq(1,1, by =0)) #Dont know how to get rid of this
-results <- tune_grid(penalty_spec, 
-                     preprocessor = full_rec, 
+results <- tune_grid(penalty_spec,
+                     preprocessor = full_rec,
                      grid = grid,
                      resamples = data_cv10)
-results %>% 
-  collect_metrics() %>% 
-  filter(.metric == "rmse") %>% 
+results %>%
+  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
   arrange(mean)
 
-results %>%  collect_metrics() %>% 
-  filter(.metric == "rmse") %>% 
+results %>%  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
   ggplot(aes(x = penalty, y = mean, color = factor(mixture), group = factor(mixture)))+
   geom_line()+
   geom_point()+
   labs(y = "RMSE")
 ```
 
-#Selecting the best 
+#Selecting the best
 ```{r}
-ridge_wf_tune <- workflow() %>% 
+ridge_wf_tune <- workflow() %>%
   add_recipe(full_rec) %>%
-  add_model(penalty_spec) 
+  add_model(penalty_spec)
 
 ridge_best_se_penalty <- select_by_one_std_err(results, metric = 'rmse', desc(penalty)) # choose penalty value based on the largest penalty within 1 se of the lowest CV MAE
 best_penalty <- select_best(results, metric = 'rmse') # choose penalty value based on lowest mae
@@ -249,28 +249,28 @@ ridge_final_fit_se <- fit(ridge_final_wf_se, data = df1)
 tidy(ridge_final_fit_se)
 ```
 
-#Visualize Ridge Regression Coefficients 
+#Visualize Ridge Regression Coefficients
 ```{r}
 glmnet_output_ridge <- ridge_final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # way to get the original glmnet output
 
 lambdas <- glmnet_output_ridge$lambda
-coefs_lambdas <- 
-  coefficients(glmnet_output_ridge, s = lambdas )  %>% 
-  as.matrix() %>%  
-  t() %>% 
-  as.data.frame() %>% 
-  mutate(lambda = lambdas ) %>% 
-  select(lambda, everything(), -`(Intercept)`) %>% 
-  pivot_longer(cols = -lambda, 
-               names_to = "term", 
+coefs_lambdas <-
+  coefficients(glmnet_output_ridge, s = lambdas )  %>%
+  as.matrix() %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(lambda = lambdas ) %>%
+  select(lambda, everything(), -`(Intercept)`) %>%
+  pivot_longer(cols = -lambda,
+               names_to = "term",
                values_to = "coef") %>%
   mutate(var = map_chr(stringr::str_split(term,"_"),~.[1]))
 
 coefs_lambdas %>%
   ggplot(aes(x = lambda, y = coef, group = term, color = var)) +
   geom_line() +
-  geom_vline(xintercept = best_se_penalty %>% pull(penalty), linetype = 'dashed') + 
-  theme_classic() + 
+  geom_vline(xintercept = best_se_penalty %>% pull(penalty), linetype = 'dashed') +
+  theme_classic() +
   theme(legend.position = "bottom", legend.text=element_text(size=8))
 ```
 
@@ -337,13 +337,24 @@ for(i in 1:100){
 ```
 
 ```{r}
+base_lasso_diff <- read.csv("lasso_diff_penn.csv")
+```
+
+```{r}
 colnames(base) <- paste(colnames(base),"lm",sep="_")
 colnames(base_lasso) <- paste(colnames(base_lasso),"lasso",sep="_")
+colnames(base_lasso_diff)<-paste(colnames(base_lasso_diff),"lasso_diff",sep="_")
+```
 
-combined <- cbind(base, base_lasso)
+```{r}
+combined <- cbind(base, base_lasso, base_lasso_diff)
+combined <- combined %>% 
+  select(-c(X.1_lasso_diff,X_lasso_diff)) %>% 
+  mutate(`(Intercept)_lasso_diff`=X.Intercept._lasso_diff) %>% 
+  select(-X.Intercept._lasso_diff)
 
 combined %>% 
-  select(V5_lm, V5_lasso) %>% 
+  select(V6_lasso, V6_lm, V6_lasso_diff) %>% 
   melt() %>% ggplot(aes(x=value, fill = variable))+
   geom_density(alpha = 0.5) + 
   geom_vline(xintercept = 5, linetype="dotted", 
@@ -370,7 +381,7 @@ base_lasso %>% ggplot(aes(x = V2))+
 
 
 ## With Different Penalties 
-```{r}
+```{r, eval=FALSE}
 data_diff_penalty <- sample_n(df1, 1000)
 data_cv10 <- vfold_cv(data_diff_penalty, v = 10)
 
@@ -413,7 +424,7 @@ base_lasso_diff_penn <- base_lasso_diff_penn %>%
 
 This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
 
-```{r}
+```{r, eval=FALSE}
 for(i in 1:100){
   data_diff_penalty <- sample_n(df1, 1000)
   data_cv10 <- vfold_cv(data_diff_penalty, v = 10)
@@ -437,9 +448,17 @@ for(i in 1:100){
 }
 
 write.csv(base_lasso_diff_penn, "lasso_diff_penn.csv")
+write.csv(combined, "Final.csv")
+
 base_lasso_diff_penn <- read.csv("lasso_diff_penn.csv")
 mean(base_lasso_diff_penn$V5)
 mean(base_lasso$V5)
+
+mean(combined$V1_lasso_diff) - 0 
+mean(combined$V1_lasso) - 0 
+mean(combined$V1_lm) - 0 
+
+tats <- summarize_all(combined, var)
 ```
 
 
