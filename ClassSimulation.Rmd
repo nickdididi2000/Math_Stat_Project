@@ -1,0 +1,334 @@
+---
+title: "SimulationForClass"
+author: "NicholasDi"
+date: '2022-04-16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(MASS)
+library(tidyverse)
+library(GGally)
+library(tidymodels)
+library(readr)
+library(broom)
+library(ggplot2)
+library(stringr)
+library(janitor)
+library(reshape)
+```
+
+## Simulated Dataset
+
+```{r}
+# create the variance covariance matrix
+set.seed(1)
+sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
+
+#Scale up the covariance matrix
+sigma <- 5*sigma
+
+# create the mean vector
+mu<-c(4,5,5) 
+
+# generate the multivariate normal distribution
+df <- as.data.frame(mvrnorm(n=10000, mu=mu, Sigma=sigma))
+
+# Generate Uncorrelated values 
+V4 <- rnorm(1000, mean=10, sd=2)
+V5 <- rnorm(1000, mean=3, sd=7)
+V6 <- rnorm(1000, mean = 8, sd = 10)
+V7 <- rnorm(1000, mean = 3, sd = 3)
+V8 <- rnorm(1000, mean = 5, sd = 1)
+df <- cbind(df, V4, V5, V6, V7, V8)
+```
+
+When constructing our true value, we can pick our coefficients, for now, we picked all of our coefficients to be 5. 
+
+Feel free to adjust the coefficient values as you like below: 
+
+```{r}
+V1Coef <- 0
+V2Coef <- 5
+V3Coef <- 0
+V4Coef <- 5
+V5Coef <- 5
+V6Coef <- 5
+V7Coef <- 3
+V8Coef <- 0
+
+#Make the Y Variable and Added Some Random Noise
+df1 <- df %>% 
+  mutate(y = V1Coef*V1 + V2Coef*V2 + V3Coef*V3 + V4Coef*V4+V5Coef*V5+V6Coef*V6+ V7Coef*V7 + V8Coef*V8 + rnorm(10000,0,6))
+```
+
+##Linear Regression
+
+First, let's see how well linear regression is able to estimate the coefficients. We will be using the tidy models package to use cross validation for more accurate prediction metrics. 
+
+```{r}
+tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
+set.seed(23)
+lm_spec <-
+    linear_reg() %>% 
+    set_engine(engine = 'lm') %>% 
+    set_mode('regression')
+full_rec <- recipe(y ~ ., data = df1) %>%
+    step_nzv(all_predictors())  %>% # important standardization step for LASSO
+    step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
+
+full_lm_wf <- workflow() %>%
+    add_recipe(full_rec) %>%
+    add_model(lm_spec)
+full_model <- fit(full_lm_wf, data = df1) 
+full_model %>% tidy()
+```
+
+Are the coefficients similar? 
+
+Let's see how accurate LM is in terms of predicting. 
+
+```{r}
+set.seed(74)
+
+# Create CV folds
+data_cv10 <- vfold_cv(df1, v = 10)
+
+fit_cv <- fit_resamples(full_lm_wf,
+              resamples = data_cv10,
+              metrics = metric_set(rmse, mae)
+)
+  
+fit_cv %>% collect_metrics() 
+```
+
+##Lasso Regression
+
+Below this code splits the data up into 10 folds. We will test 100 different lambda (penalty) values from $10^{-1}$ to $10^{5}$. 
+
+```{r}
+set.seed(74)
+
+# Create CV folds
+data_cv10 <- vfold_cv(df1, v = 10)
+
+# Lasso Model Spec with tune
+lm_lasso_spec_tune <- 
+  linear_reg() %>%
+  set_args(mixture = 1, penalty = tune()) %>% ## mixture = 1 indicates Lasso
+  set_engine(engine = 'glmnet') %>% 
+  set_mode('regression') 
+
+# Workflow (Recipe + Model)
+lasso_wf_tune <- workflow() %>% 
+  add_recipe(full_rec) %>%
+  add_model(lm_lasso_spec_tune) 
+
+# Tune Model (trying a variety of values of Lambda penalty)
+penalty_grid <- grid_regular(
+  penalty(range = c(-1, 5)), #log10 transformed 
+  levels = 100)
+
+tune_output <- tune_grid( # new function for tuning hyperparameters
+  lasso_wf_tune, # workflow
+  resamples = data_cv10, # cv folds
+  metrics = metric_set(rmse, mae),
+  grid = penalty_grid # penalty grid defined above
+)
+metrics_output <- collect_metrics(tune_output) %>%
+  filter(.metric == 'mae') 
+```
+
+We fit many penalty values, which one do you think we will end up picking? Why would we might one to pick the best pentalty within 1 se of the lowest CV MAE?
+
+```{r}
+best_penalty <- select_best(tune_output, metric = 'mae') # choose penalty value based on lowest mae
+best_penalty
+best_se_penalty <- select_by_one_std_err(tune_output, metric = 'mae', desc(penalty)) # choose penalty value based on the largest penalty within 1 se of the lowest CV MAE
+best_se_penalty
+```
+
+We will continue on by choosing the best penalty based on the largest penalty within 1 se of the lowest CV MAE. Let's see how accurate the predictions are
+
+```{r}
+final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) # incorporates penalty value to workflow
+final_fit_se <- fit(final_wf_se, data = df1)
+tidy(final_fit_se)
+```
+
+How accurate are the coefficients? What happens to the irrelevant variables? 
+
+```{r}
+set.seed(74)
+
+# Create CV folds
+data_cv10 <- vfold_cv(df1, v = 10)
+
+fit_cv <- fit_resamples(final_fit_se,
+              resamples = data_cv10,
+              metrics = metric_set(rmse, mae)
+)
+  
+fit_cv %>% collect_metrics() 
+```
+
+How are the compared to lm? Why do you think so? 
+
+
+Below is a chart of coefficient values as we increase the penalty term. 
+
+```{r}
+glmnet_output <- final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # way to get the original glmnet output
+
+lambdas <- glmnet_output$lambda
+coefs_lambdas <- 
+  coefficients(glmnet_output, s = lambdas )  %>% 
+  as.matrix() %>%  
+  t() %>% 
+  as.data.frame() %>% 
+  mutate(lambda = lambdas ) %>% 
+  select(lambda, everything(), -`(Intercept)`) %>% 
+  pivot_longer(cols = -lambda, 
+               names_to = "term", 
+               values_to = "coef") %>%
+  mutate(var = map_chr(stringr::str_split(term,"_"),~.[1]))
+
+coefs_lambdas %>%
+  ggplot(aes(x = lambda, y = coef, group = term, color = var)) +
+  geom_line() +
+  geom_vline(xintercept = best_se_penalty %>% pull(penalty), linetype = 'dashed') + 
+  theme_classic() + 
+  theme(legend.position = "bottom", legend.text=element_text(size=8))
+```
+
+What are some interesting things happening in the graph? What is V6 such an important predictor? 
+
+##Bias and Variance
+
+Now we will sample 100 different datasets from our 10,000 master data set. We will fit a linear regression 100 times and see the bias and variance of the estimator. 
+
+#Linear Model
+
+First, we will make a data frame of outputs. We will start with one and then begin apprehending.  
+
+```{r}
+samples <- sample_n(df1,100)
+lm <- lm(y~., data = samples)
+matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
+matrix_coef
+my_estimates <- matrix_coef[ , 1]  
+base <- as.data.frame(my_estimates)
+base <- t(base)
+base
+```
+let us do this 100 times total and append them to the dataframe
+
+```{r}
+for(i in 1:100){
+  samples <- sample_n(df1,100)
+  lm <- lm(y~., data = samples)
+  matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
+  my_estimates <- matrix_coef[ , 1]  
+  temp <- as.data.frame(my_estimates)
+  temp <- t(temp)
+  base <- rbind(base, temp)
+}
+
+lm_coef <- as.data.frame(base)
+head(lm_coef)
+```
+
+We will now do the same but with LASSO 
+
+```{r}
+temp <- tidy(final_fit_se) %>% 
+  select(term, estimate) %>% 
+  as.data.frame()
+base_lasso <- t(temp)
+base_lasso <- as.data.frame(base_lasso)
+base_lasso <- base_lasso %>% 
+  row_to_names(row_number = 1) %>% 
+  mutate(across(everything(),as.numeric))
+```
+
+This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
+
+```{r}
+for(i in 1:100){
+  data <- sample_n(df1, 1000)
+  final_fit_se <- fit(final_wf_se, data = data)
+  
+  temp <- tidy(final_fit_se) %>% 
+    pull(estimate)  
+  names(temp) <- tidy(final_fit_se) %>% pull(term)
+
+  base_lasso <- bind_rows(base_lasso, temp)
+}
+lasso_coeff <- base_lasso
+```
+
+Let's combine them into one data set for easier visualization. 
+
+```{r}
+colnames(lm_coef) <- paste(colnames(lm_coef),"lm",sep="_")
+colnames(lasso_coeff) <- paste(colnames(lasso_coeff),"lasso",sep="_")
+
+combined <- cbind(lm_coef, lasso_coeff)
+```
+
+Let's visualize the coefficients! What happens when we fit an irrelavent variable? (A coefficient who's value should be 0 based on how we built our data)
+
+```{r}
+combined %>% 
+  select(V5_lasso, V5_lm) %>% 
+  melt() %>% ggplot(aes(x=value, fill = variable))+
+  geom_density(alpha = 0.5) + 
+  geom_vline(xintercept = V5Coef, linetype="dotted", 
+                color = "blue", size=1.5)
+```
+
+What do you notice in terms of bias and variance between lasso and linear models? 
+
+```{r}
+temp <- summarize_all(lasso_coeff, mean)
+temp <- temp[1,]
+temp <- as.data.frame(t(temp))
+temp <- tats %>% slice(-1)
+temp2 <- summarize_all(lasso_coeff, var)
+temp2 <- temp2[1,]
+temp2 <- as.data.frame(t(temp2))
+temp2 <- temp2 %>% slice(-1) %>% 
+  mutate(Variance = `1`) %>% 
+  select(Variance)
+actual_values <- as.data.frame(c(V1Coef,V2Coef,V3Coef,V4Coef,V5Coef,V6Coef,V7Coef,V8Coef))
+
+lasso_stats <- cbind(temp,actual_values,temp2) %>% 
+  mutate(Bias = `1` - `c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`,
+         `Actual Value`=`c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`) %>% 
+  select(Bias, Variance,`Actual Value`)
+
+lasso_stats
+```
+
+```{r}
+temp <- summarize_all(lm_coef, mean)
+temp <- temp[1,]
+temp <- as.data.frame(t(temp))
+temp <- temp %>% slice(-1)
+temp2 <- summarize_all(lm_coef, var)
+temp2 <- temp2[1,]
+temp2 <- as.data.frame(t(temp2))
+temp2 <- temp2 %>% slice(-1) %>% 
+  mutate(Variance = `1`) %>% 
+  select(Variance)
+actual_values <- as.data.frame(c(V1Coef,V2Coef,V3Coef,V4Coef,V5Coef,V6Coef,V7Coef,V8Coef))
+
+lm_stats <- cbind(temp,actual_values,temp2) %>% 
+  mutate(Bias = `1` - `c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`,
+         `Actual Value`=`c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`) %>% 
+  select(Bias, Variance,`Actual Value`)
+
+lm_stats
+```
+
+
