@@ -39,21 +39,21 @@ V4 <- rnorm(1000, mean=10, sd=2)
 V5 <- rnorm(1000, mean=3, sd=7)
 V6 <- rnorm(1000, mean = 8, sd = 10)
 V7 <- rnorm(1000, mean = 3, sd = 3)
-V8 <- rnorm(1000, mean = 5, sd = 1)
+V8 <- rnorm(1000, mean = 5, sd = 2)
 df <- cbind(df, V4, V5, V6, V7, V8)
 ```
 
 When constructing our true value, we can pick our coefficients, for now, we picked all of our coefficients to be 5. 
 
-Feel free to adjust the coefficient values as you like below: 
+Feel free to adjust the coefficient values as you like below (Make sure to have some 0's): 
 
 ```{r}
-V1Coef <- 0
+V1Coef <- 3
 V2Coef <- 5
 V3Coef <- 0
 V4Coef <- 5
 V5Coef <- 5
-V6Coef <- 5
+V6Coef <- 0
 V7Coef <- 3
 V8Coef <- 0
 
@@ -139,7 +139,7 @@ metrics_output <- collect_metrics(tune_output) %>%
   filter(.metric == 'mae') 
 ```
 
-We fit many penalty values, which one do you think we will end up picking? Why would we might one to pick the best pentalty within 1 se of the lowest CV MAE?
+We fit many penalty values, which one do you think we will end up picking? Why would we might one to pick the best penalty within 1 se of the lowest CV MAE?
 
 ```{r}
 best_penalty <- select_best(tune_output, metric = 'mae') # choose penalty value based on lowest mae
@@ -224,7 +224,7 @@ base
 let us do this 100 times total and append them to the dataframe
 
 ```{r}
-for(i in 1:100){
+for(i in 1:200){
   samples <- sample_n(df1,100)
   lm <- lm(y~., data = samples)
   matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
@@ -254,7 +254,7 @@ base_lasso <- base_lasso %>%
 This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
 
 ```{r}
-for(i in 1:100){
+for(i in 1:200){
   data <- sample_n(df1, 1000)
   final_fit_se <- fit(final_wf_se, data = data)
   
@@ -280,10 +280,10 @@ Let's visualize the coefficients! What happens when we fit an irrelavent variabl
 
 ```{r}
 combined %>% 
-  select(V5_lasso, V5_lm) %>% 
+  select(V6_lasso, V6_lm) %>% 
   melt() %>% ggplot(aes(x=value, fill = variable))+
   geom_density(alpha = 0.5) + 
-  geom_vline(xintercept = V5Coef, linetype="dotted", 
+  geom_vline(xintercept = V6Coef, linetype="dotted", 
                 color = "blue", size=1.5)
 ```
 
@@ -293,7 +293,7 @@ What do you notice in terms of bias and variance between lasso and linear models
 temp <- summarize_all(lasso_coeff, mean)
 temp <- temp[1,]
 temp <- as.data.frame(t(temp))
-temp <- tats %>% slice(-1)
+temp <- temp %>% slice(-1)
 temp2 <- summarize_all(lasso_coeff, var)
 temp2 <- temp2[1,]
 temp2 <- as.data.frame(t(temp2))
@@ -307,10 +307,6 @@ lasso_stats <- cbind(temp,actual_values,temp2) %>%
          `Actual Value`=`c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`) %>% 
   select(Bias, Variance,`Actual Value`)
 
-lasso_stats
-```
-
-```{r}
 temp <- summarize_all(lm_coef, mean)
 temp <- temp[1,]
 temp <- as.data.frame(t(temp))
@@ -327,8 +323,17 @@ lm_stats <- cbind(temp,actual_values,temp2) %>%
   mutate(Bias = `1` - `c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`,
          `Actual Value`=`c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`) %>% 
   select(Bias, Variance,`Actual Value`)
+```
 
-lm_stats
+```{r}
+colnames(lm_stats) <- paste(colnames(lm_stats),"lm",sep="_")
+colnames(lasso_stats) <- paste(colnames(lasso_stats),"lasso",sep="_")
+
+BiasVarianceStats <- cbind(lm_stats,lasso_stats) %>% 
+  select(-`Actual Value_lm`) %>% 
+  rename(`Actual Value` = `Actual Value_lasso`)
+
+BiasVarianceStats
 ```
 
 

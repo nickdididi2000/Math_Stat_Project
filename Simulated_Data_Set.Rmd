@@ -85,7 +85,7 @@ fit_cv %>% collect_metrics()
 
 #Using LASSO 
 
-Below this code splits the data up into 10 folds. We will test 100 different lambda (penalty) values from $10^{-3}$ to $10^{2}$. 
+Below this code splits the data up into 10 folds. We will test 100 different lambda (penalty) values from $10^{-1}$ to $10^{5}$. 
 
 ```{r}
 set.seed(74)
