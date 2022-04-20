@@ -5,6 +5,8 @@ date: '2022-04-16'
 output: html_document
 ---
 
+# Simulation of Bias and Variance in Lasso and OLS models
+
 ```{r setup, include=FALSE}
 library(MASS)
 library(tidyverse)
@@ -19,13 +21,14 @@ library(reshape)
 ```
 
 ## Simulated Dataset
+Here we make a simulated data set with 8 variables. Some of these variables are highly correlated with each other.
 
 ```{r}
 # create the variance covariance matrix
 set.seed(1)
 sigma<-rbind(c(1,0.8,0.7), c(0.8,1, 0.95), c(0.7,0.95,1))
 
-#Scale up the covariance matrix
+# scale up the covariance matrix
 sigma <- 5*sigma
 
 # create the mean vector
@@ -34,7 +37,7 @@ mu<-c(4,5,5)
 # generate the multivariate normal distribution
 df <- as.data.frame(mvrnorm(n=10000, mu=mu, Sigma=sigma))
 
-# Generate Uncorrelated values 
+# generate uncorrelated values 
 V4 <- rnorm(1000, mean=10, sd=2)
 V5 <- rnorm(1000, mean=3, sd=7)
 V6 <- rnorm(1000, mean = 8, sd = 10)
@@ -43,9 +46,7 @@ V8 <- rnorm(1000, mean = 5, sd = 2)
 df <- cbind(df, V4, V5, V6, V7, V8)
 ```
 
-When constructing our true value, we can pick our coefficients, for now, we picked all of our coefficients to be 5. 
-
-Feel free to adjust the coefficient values as you like below (Make sure to have some 0's): 
+When constructing our true model, we can pick our coefficients. We chose some coefficients but feel free to to adjust the coefficient values as you like below (make sure to have some 0's)! 
 
 ```{r}
 V1Coef <- 3
@@ -57,35 +58,43 @@ V6Coef <- 0
 V7Coef <- 3
 V8Coef <- 0
 
-#Make the Y Variable and Added Some Random Noise
+# make the Y variable and add some random noise
 df1 <- df %>% 
   mutate(y = V1Coef*V1 + V2Coef*V2 + V3Coef*V3 + V4Coef*V4+V5Coef*V5+V6Coef*V6+ V7Coef*V7 + V8Coef*V8 + rnorm(10000,0,6))
 ```
 
-##Linear Regression
+## Linear Regression
 
 First, let's see how well linear regression is able to estimate the coefficients. We will be using the tidy models package to use cross validation for more accurate prediction metrics. 
 
 ```{r}
 tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
 set.seed(23)
+
+# set the engine (how R actually makes the model) and the mode (either regression or classification)
 lm_spec <-
     linear_reg() %>% 
     set_engine(engine = 'lm') %>% 
     set_mode('regression')
-full_rec <- recipe(y ~ ., data = df1) %>%
+
+# Here we create a recipe (the model + all the preprocessing steps) that is very important for lasso. We use it for the OLS model to make sure we are modifying the data in the same way for all models. 
+
+full_rec <- recipe(y ~ ., data = df1) %>% # we want to model y based on all the predictors (. means include every predictor)
     step_nzv(all_predictors())  %>% # important standardization step for LASSO
     step_dummy(all_nominal_predictors())  # creates indicator variables for categorical variables
 
-full_lm_wf <- workflow() %>%
+
+full_lm_wf <- workflow() %>% # in the workflow we combine the recipe with the model specification
     add_recipe(full_rec) %>%
     add_model(lm_spec)
-full_model <- fit(full_lm_wf, data = df1) 
+
+full_model <- fit(full_lm_wf, data = df1) # fit the model to the data
 full_model %>% tidy()
 ```
 
-Are the coefficients similar? 
+1. Are the coefficients estimates given by the OLS model similar to the true values of the coefficients? 
 
+### Linear Regression Accuracy
 Let's see how accurate LM is in terms of predicting. 
 
 ```{r}
@@ -96,17 +105,19 @@ data_cv10 <- vfold_cv(df1, v = 10)
 
 fit_cv <- fit_resamples(full_lm_wf,
               resamples = data_cv10,
-              metrics = metric_set(rmse, mae)
+              metrics = metric_set(rmse, mae) # chosen metrics 
 )
   
 fit_cv %>% collect_metrics() 
 ```
 
-##Lasso Regression
 
-Below this code splits the data up into 10 folds. We will test 100 different lambda (penalty) values from $10^{-1}$ to $10^{5}$. 
+## Lasso Regression
+
+The code below splits the data up into 10 folds. We will test 100 different lambda (penalty) values from $10^{-1}$ to $10^{5}$. We pick the best lambda in the next step.
 
 ```{r}
+tidymodels_prefer()
 set.seed(74)
 
 # Create CV folds
@@ -116,12 +127,12 @@ data_cv10 <- vfold_cv(df1, v = 10)
 lm_lasso_spec_tune <- 
   linear_reg() %>%
   set_args(mixture = 1, penalty = tune()) %>% ## mixture = 1 indicates Lasso
-  set_engine(engine = 'glmnet') %>% 
+  set_engine(engine = 'glmnet') %>% # we use the glmnet engine to do lasso
   set_mode('regression') 
 
 # Workflow (Recipe + Model)
 lasso_wf_tune <- workflow() %>% 
-  add_recipe(full_rec) %>%
+  add_recipe(full_rec) %>% # using the same recipe created above
   add_model(lm_lasso_spec_tune) 
 
 # Tune Model (trying a variety of values of Lambda penalty)
@@ -138,17 +149,19 @@ tune_output <- tune_grid( # new function for tuning hyperparameters
 metrics_output <- collect_metrics(tune_output) %>%
   filter(.metric == 'mae') 
 ```
+2. Look back at the recipe created in the OLS section. Why must we standardize the predictors for lasso?  
 
-We fit many penalty values, which one do you think we will end up picking? Why would we might one to pick the best penalty within 1 se of the lowest CV MAE?
+
+3. We fit many penalty values. We could pick the lambda that leads to the lowest overall CV MAE; however, we will pick the lambda with the smallest MAE within one SE of the lowest CV MAE. Why would we might we do this? 
 
 ```{r}
 best_penalty <- select_best(tune_output, metric = 'mae') # choose penalty value based on lowest mae
 best_penalty
-best_se_penalty <- select_by_one_std_err(tune_output, metric = 'mae', desc(penalty)) # choose penalty value based on the largest penalty within 1 se of the lowest CV MAE
+best_se_penalty <- select_by_one_std_err(tune_output, metric = 'mae', desc(penalty)) # choose penalty value based on the largest penalty within 1 SE of the lowest CV MAE
 best_se_penalty
 ```
 
-We will continue on by choosing the best penalty based on the largest penalty within 1 se of the lowest CV MAE. Let's see how accurate the predictions are
+Now we will make our fit our model using this lambda.
 
 ```{r}
 final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) # incorporates penalty value to workflow
@@ -156,7 +169,11 @@ final_fit_se <- fit(final_wf_se, data = df1)
 tidy(final_fit_se)
 ```
 
-How accurate are the coefficients? What happens to the irrelevant variables? 
+4. How accurate are the coefficients? 
+
+5. What happens to the irrelevant variables? 
+
+### Lasso Accuracy 
 
 ```{r}
 set.seed(74)
@@ -172,13 +189,14 @@ fit_cv <- fit_resamples(final_fit_se,
 fit_cv %>% collect_metrics() 
 ```
 
-How are the compared to lm? Why do you think so? 
+6. How is the accuracy of the lasso model compared to the accuracy of the OLS model? Why do you think so? 
 
+### Changing Lambda 
 
 Below is a chart of coefficient values as we increase the penalty term. 
 
 ```{r}
-glmnet_output <- final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # way to get the original glmnet output
+glmnet_output <- final_fit_se %>% extract_fit_parsnip() %>% pluck('fit') # extracting the original glmnet output
 
 lambdas <- glmnet_output$lambda
 coefs_lambdas <- 
@@ -201,27 +219,31 @@ coefs_lambdas %>%
   theme(legend.position = "bottom", legend.text=element_text(size=8))
 ```
 
-What are some interesting things happening in the graph? What is V6 such an important predictor? 
+7. What happens to the coefficients as lambda increases? Do you notice any other interesting trends?
 
-##Bias and Variance
+8. V6 is a very important predictor -- how can you see that in this graph? 
 
-Now we will sample 100 different datasets from our 10,000 master data set. We will fit a linear regression 100 times and see the bias and variance of the estimator. 
+## Bias and Variance 
+Now we will investigate the bias and variance of the coefficient estimates for the lasso model and the OLS model
 
-#Linear Model
+### Set Up
+We will sample 100 different datasets from our 10,000 master data set. We will fit a linear regression 100 times and see the bias and variance of the model.
 
-First, we will make a data frame of outputs. We will start with one and then begin apprehending.  
+First, we will make a data frame of outputs. We will start with one and then add more to the intial dataframe.   
 
 ```{r}
 samples <- sample_n(df1,100)
 lm <- lm(y~., data = samples)
+
 matrix_coef <- summary(lm)$coefficients  # Extract coefficients in matrix
 matrix_coef
+
 my_estimates <- matrix_coef[ , 1]  
 base <- as.data.frame(my_estimates)
 base <- t(base)
 base
 ```
-let us do this 100 times total and append them to the dataframe
+Let us do this 100 times total and append them to the dataframe.
 
 ```{r}
 for(i in 1:200){
@@ -238,7 +260,7 @@ lm_coef <- as.data.frame(base)
 head(lm_coef)
 ```
 
-We will now do the same but with LASSO 
+We will now do the same but with LASSO. 
 
 ```{r}
 temp <- tidy(final_fit_se) %>% 
@@ -251,7 +273,7 @@ base_lasso <- base_lasso %>%
   mutate(across(everything(),as.numeric))
 ```
 
-This will be our base, we will then append more observations. For computational sake, we will use the same repeated lambda value. 
+This will be our base, we will then append more observations. To reduce computational energy, we will use the same  lambda value for each sample. 
 
 ```{r}
 for(i in 1:200){
@@ -267,7 +289,7 @@ for(i in 1:200){
 lasso_coeff <- base_lasso
 ```
 
-Let's combine them into one data set for easier visualization. 
+Let's combine all the outputs of both the lasso model and the OLS model into one data set for easier visualization. 
 
 ```{r}
 colnames(lm_coef) <- paste(colnames(lm_coef),"lm",sep="_")
@@ -276,18 +298,22 @@ colnames(lasso_coeff) <- paste(colnames(lasso_coeff),"lasso",sep="_")
 combined <- cbind(lm_coef, lasso_coeff)
 ```
 
-Let's visualize the coefficients! What happens when we fit an irrelavent variable? (A coefficient who's value should be 0 based on how we built our data)
+
+### Visualization
+Let's visualize the coefficients! Below we have visualized V6 -- you can visualize different coefficients by changing all the instances of V6 to V3 (for example). 
 
 ```{r}
 combined %>% 
-  select(V6_lasso, V6_lm) %>% 
+  select(V6_lasso, V6_lm) %>% # change coefs here
   melt() %>% ggplot(aes(x=value, fill = variable))+
   geom_density(alpha = 0.5) + 
-  geom_vline(xintercept = V6Coef, linetype="dotted", 
+  geom_vline(xintercept = V6Coef, linetype="dotted",  # change coefs here
                 color = "blue", size=1.5)
 ```
 
-What do you notice in terms of bias and variance between lasso and linear models? 
+9. What do you notice about the bias and variance of the two different models? 
+
+10. Fit a variable who's coefficient is 0 by coping the code above and changing the coefficients. What happens when we fit this irrelevant variable? 
 
 ```{r}
 temp <- summarize_all(lasso_coeff, mean)
