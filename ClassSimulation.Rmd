@@ -49,9 +49,9 @@ df <- cbind(df, V4, V5, V6, V7, V8)
 When constructing our true model, we can pick our coefficients. We chose some coefficients but feel free to to adjust the coefficient values as you like below (make sure to have some 0's)! 
 
 ```{r}
-V1Coef <- 3
-V2Coef <- 5
-V3Coef <- 0
+V1Coef <- 0 #REMEMBER THESE ARE HIGHLY CORRELATED 
+V2Coef <- 2 #REMEMBER THESE ARE HIGHLY CORRELATED 
+V3Coef <- 2 #REMEMBER THESE ARE HIGHLY CORRELATED 
 V4Coef <- 5
 V5Coef <- 5
 V6Coef <- 0
@@ -227,7 +227,7 @@ coefs_lambdas %>%
 Now we will investigate the bias and variance of the coefficient estimates for the lasso model and the OLS model
 
 ### Set Up
-We will sample 100 different datasets from our 10,000 master data set. We will fit a linear regression 100 times and see the bias and variance of the model.
+We will sample 200 different datasets from our 10,000 master data set. We will fit a linear regression 100 times and see the bias and variance of the model.
 
 First, we will make a data frame of outputs. We will start with one and then add more to the intial dataframe.   
 
@@ -304,10 +304,10 @@ Let's visualize the coefficients! Below we have visualized V6 -- you can visuali
 
 ```{r}
 combined %>% 
-  select(V6_lasso, V6_lm) %>% # change coefs here
+  select(V4_lasso, V4_lm) %>% # change coefs here
   melt() %>% ggplot(aes(x=value, fill = variable))+
   geom_density(alpha = 0.5) + 
-  geom_vline(xintercept = V6Coef, linetype="dotted",  # change coefs here
+  geom_vline(xintercept = V4Coef, linetype="dotted",  # change coefs here
                 color = "blue", size=1.5)
 ```
 
@@ -349,16 +349,17 @@ lm_stats <- cbind(temp,actual_values,temp2) %>%
   mutate(Bias = `1` - `c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`,
          `Actual Value`=`c(V1Coef, V2Coef, V3Coef, V4Coef, V5Coef, V6Coef, V7Coef, V8Coef)`) %>% 
   select(Bias, Variance,`Actual Value`)
-```
 
-```{r}
 colnames(lm_stats) <- paste(colnames(lm_stats),"lm",sep="_")
 colnames(lasso_stats) <- paste(colnames(lasso_stats),"lasso",sep="_")
 
 BiasVarianceStats <- cbind(lm_stats,lasso_stats) %>% 
   select(-`Actual Value_lm`) %>% 
   rename(`Actual Value` = `Actual Value_lasso`)
+```
 
+
+```{r}
 BiasVarianceStats
 ```
 
