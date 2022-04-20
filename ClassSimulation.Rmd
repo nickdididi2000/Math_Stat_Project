@@ -20,7 +20,8 @@ library(janitor)
 library(reshape)
 ```
 
-## Simulated Dataset
+## Creating a Simulated Dataset
+
 Here we make a simulated data set with 8 variables. Some of these variables are highly correlated with each other.
 
 ```{r}
@@ -46,12 +47,12 @@ V8 <- rnorm(1000, mean = 5, sd = 2)
 df <- cbind(df, V4, V5, V6, V7, V8)
 ```
 
-When constructing our true model, we can pick our coefficients. We chose some coefficients but feel free to to adjust the coefficient values as you like below (make sure to have some 0's)! 
+When constructing our true model, we can pick our own predictor variable coefficients. We chose some coefficients, but feel free to adjust the coefficient values as you like below (make sure to include some 0's)! 
 
 ```{r}
-V1Coef <- 0 #REMEMBER THESE ARE HIGHLY CORRELATED 
-V2Coef <- 2 #REMEMBER THESE ARE HIGHLY CORRELATED 
-V3Coef <- 2 #REMEMBER THESE ARE HIGHLY CORRELATED 
+V1Coef <- 0 #REMEMBER, THESE (V1, V2, V3) ARE HIGHLY CORRELATED 
+V2Coef <- 2 #REMEMBER, THESE (V1, V2, V3) ARE HIGHLY CORRELATED 
+V3Coef <- 2 #REMEMBER, THESE (V1, V2, V3) ARE HIGHLY CORRELATED 
 V4Coef <- 5
 V5Coef <- 5
 V6Coef <- 0
@@ -63,9 +64,9 @@ df1 <- df %>%
   mutate(y = V1Coef*V1 + V2Coef*V2 + V3Coef*V3 + V4Coef*V4+V5Coef*V5+V6Coef*V6+ V7Coef*V7 + V8Coef*V8 + rnorm(10000,0,6))
 ```
 
-## Linear Regression
+## Simple Linear Regression
 
-First, let's see how well linear regression is able to estimate the coefficients. We will be using the tidy models package to use cross validation for more accurate prediction metrics. 
+First, let's see how well simple linear regression is able to estimate the predictor coefficients. We will be using the tidymodels package to perform cross-validation for more accurate prediction metrics. 
 
 ```{r}
 tidymodels_prefer() # Resolves conflicts, prefers tidymodel functions
@@ -92,11 +93,11 @@ full_model <- fit(full_lm_wf, data = df1) # fit the model to the data
 full_model %>% tidy()
 ```
 
-1. Are the coefficients estimates given by the OLS model similar to the true values of the coefficients? 
+1. Are the coefficient estimates given by the OLS model similar to the true values of the coefficients (you can find these true values in the second R chunk)? 
 
-### Linear Regression Accuracy
-Let's see how accurate LM is in terms of predicting. 
+### Simple Linear Regression Accuracy
 
+Let's use cross-validation to see how accurate simple linear regression is in terms of predicting. 
 ```{r}
 set.seed(74)
 
@@ -149,6 +150,7 @@ tune_output <- tune_grid( # new function for tuning hyperparameters
 metrics_output <- collect_metrics(tune_output) %>%
   filter(.metric == 'mae') 
 ```
+
 2. Look back at the recipe created in the OLS section. Why must we standardize the predictors for lasso?  
 
 
@@ -161,7 +163,7 @@ best_se_penalty <- select_by_one_std_err(tune_output, metric = 'mae', desc(penal
 best_se_penalty
 ```
 
-Now we will make our fit our model using this lambda.
+Now we will fit our lasso model using this lambda.
 
 ```{r}
 final_wf_se <- finalize_workflow(lasso_wf_tune, best_se_penalty) # incorporates penalty value to workflow
@@ -171,7 +173,7 @@ tidy(final_fit_se)
 
 4. How accurate are the coefficients? 
 
-5. What happens to the irrelevant variables? 
+5. What happens to the non-informative (value 0) variables? 
 
 ### Lasso Accuracy 
 
@@ -224,12 +226,13 @@ coefs_lambdas %>%
 8. V6 is a very important predictor -- how can you see that in this graph? 
 
 ## Bias and Variance 
-Now we will investigate the bias and variance of the coefficient estimates for the lasso model and the OLS model
+
+Now we will investigate the bias and variance of the coefficient estimates for the lasso model and the OLS model.
 
 ### Set Up
-We will sample 200 different datasets from our 10,000 master data set. We will fit a linear regression 100 times and see the bias and variance of the model.
+We will sample 200 different datasets from our 10,000 master data set. We will fit a linear regression 100 times and examine the bias and variance of the model's predicted coefficients.
 
-First, we will make a data frame of outputs. We will start with one and then add more to the intial dataframe.   
+First, we will make a data frame of outputs. We will start with one and then add more to the initial dataframe.   
 
 ```{r}
 samples <- sample_n(df1,100)
@@ -243,7 +246,8 @@ base <- as.data.frame(my_estimates)
 base <- t(base)
 base
 ```
-Let us do this 100 times total and append them to the dataframe.
+
+Let's do this 100 times total and append them to the dataframe.
 
 ```{r}
 for(i in 1:200){
@@ -260,7 +264,7 @@ lm_coef <- as.data.frame(base)
 head(lm_coef)
 ```
 
-We will now do the same but with LASSO. 
+We will now do the same but with lasso. 
 
 ```{r}
 temp <- tidy(final_fit_se) %>% 
@@ -300,7 +304,7 @@ combined <- cbind(lm_coef, lasso_coeff)
 
 
 ### Visualization
-Let's visualize the coefficients! Below we have visualized V6 -- you can visualize different coefficients by changing all the instances of V6 to V3 (for example). 
+Let's visualize the coefficients! Below we have visualized V4 -- you can visualize different coefficients by changing all the instances of V6 to V3 (for example). 
 
 ```{r}
 combined %>% 
@@ -313,7 +317,7 @@ combined %>%
 
 9. What do you notice about the bias and variance of the two different models? 
 
-10. Fit a variable who's coefficient is 0 by coping the code above and changing the coefficients. What happens when we fit this irrelevant variable? 
+10. Fit a variable whose coefficient is 0 by copying the code above and changing the coefficients. What happens when we fit this non-informative variable? 
 
 ```{r}
 temp <- summarize_all(lasso_coeff, mean)
