@@ -95,6 +95,8 @@ full_model %>% tidy()
 
 1. Are the coefficient estimates given by the OLS model similar to the true values of the coefficients (you can find these true values in the second R chunk)? 
 
+Yes they are similar! They are quite close compared to the real values. Note that the standard errors for the collinear variables are a bit higher compared to the rest. 
+
 ### Simple Linear Regression Accuracy
 
 Let's use cross-validation to see how accurate simple linear regression is in terms of predicting. 
@@ -153,8 +155,11 @@ metrics_output <- collect_metrics(tune_output) %>%
 
 2. Look back at the recipe created in the OLS section. Why must we standardize the predictors for lasso?  
 
+We want to standardize the predictors for lasso so that all variables are penalitzed the same despite what "units" they are in. 
 
 3. We fit many penalty values. We could pick the lambda that leads to the lowest overall CV MAE; however, we will pick the lambda with the smallest MAE within one SE of the lowest CV MAE. Why would we might we do this? 
+
+We do not one to "overfit" the penalty value. The BEST penalty value might be over fitted to a particular CV and we do not want to use that same penalty value on other sets of data. 
 
 ```{r}
 best_penalty <- select_best(tune_output, metric = 'mae') # choose penalty value based on lowest mae
@@ -173,7 +178,11 @@ tidy(final_fit_se)
 
 4. How accurate are the coefficients? 
 
+They are still vary accurate
+
 5. What happens to the non-informative (value 0) variables? 
+
+The non-informative variables are all set to 0! 
 
 ### Lasso Accuracy 
 
@@ -192,6 +201,8 @@ fit_cv %>% collect_metrics()
 ```
 
 6. How is the accuracy of the lasso model compared to the accuracy of the OLS model? Why do you think so? 
+
+LASSO in this case was slightly worst compared to OLS. This may be because of chance. This also might be because we are limited to the number of variables we are using. 
 
 ### Changing Lambda 
 
@@ -223,7 +234,11 @@ coefs_lambdas %>%
 
 7. What happens to the coefficients as lambda increases? Do you notice any other interesting trends?
 
+Coefficients all begin to decrease towards zero. It takes longer for V6 to decrease to zero than other variables. 
+
 8. V6 is a very important predictor -- how can you see that in this graph? 
+
+At large lambda values, V6 is the only variable standing. This is because V6 has the biggest variance and thus will give the biggest indicator/signal for lasso to capture. 
 
 ## Bias and Variance 
 
@@ -317,7 +332,11 @@ combined %>%
 
 9. What do you notice about the bias and variance of the two different models? 
 
+OLS tends to be less bias but more variance. While LASSO tends to be more varied but less bias. 
+
 10. Fit a variable whose coefficient is 0 by copying the code above and changing the coefficients. What happens when we fit this non-informative variable? 
+
+LASSO seems to be both less bias and less varied 
 
 ```{r}
 temp <- summarize_all(lasso_coeff, mean)
@@ -362,7 +381,6 @@ BiasVarianceStats <- cbind(lm_stats,lasso_stats) %>%
   rename(`Actual Value` = `Actual Value_lasso`)
 ```
 
-Here is a summary of the coefficients and bias/variance from LM and LASSO: 
 
 ```{r}
 BiasVarianceStats
