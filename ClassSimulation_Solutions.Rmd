@@ -155,11 +155,11 @@ metrics_output <- collect_metrics(tune_output) %>%
 
 2. Look back at the recipe created in the OLS section. Why must we standardize the predictors for lasso?  
 
-We want to standardize the predictors for lasso so that all variables are penalitzed the same despite what "units" they are in. 
+We want to standardize the predictors for lasso so that all variables are penalized the same despite what "units" they are in. 
 
 3. We fit many penalty values. We could pick the lambda that leads to the lowest overall CV MAE; however, we will pick the lambda with the smallest MAE within one SE of the lowest CV MAE. Why would we might we do this? 
 
-We do not one to "overfit" the penalty value. The BEST penalty value might be over fitted to a particular CV and we do not want to use that same penalty value on other sets of data. 
+We do not one to "overfit" the penalty value. The BEST penalty value might be overfit to a particular CV fold and we do not want to use that same penalty value on other sets of data. 
 
 ```{r}
 best_penalty <- select_best(tune_output, metric = 'mae') # choose penalty value based on lowest mae
@@ -178,7 +178,7 @@ tidy(final_fit_se)
 
 4. How accurate are the coefficients? 
 
-They are still vary accurate
+They are still very accurate.
 
 5. What happens to the non-informative (value 0) variables? 
 
@@ -202,7 +202,7 @@ fit_cv %>% collect_metrics()
 
 6. How is the accuracy of the lasso model compared to the accuracy of the OLS model? Why do you think so? 
 
-LASSO in this case was slightly worst compared to OLS. This may be because of chance. This also might be because we are limited to the number of variables we are using. 
+LASSO in this case was slightly worse compared to OLS. This may be because of chance. This also might be because we are limited in the number of variables we are using. 
 
 ### Changing Lambda 
 
@@ -332,11 +332,11 @@ combined %>%
 
 9. What do you notice about the bias and variance of the two different models? 
 
-OLS tends to be less bias but more variance. While LASSO tends to be more varied but less bias. 
+OLS tends to be less biased but more variable. LASSO tends to be more variable but less biased. 
 
 10. Fit a variable whose coefficient is 0 by copying the code above and changing the coefficients. What happens when we fit this non-informative variable? 
 
-LASSO seems to be both less bias and less varied 
+LASSO seems to be both less biased and less variable.
 
 ```{r}
 temp <- summarize_all(lasso_coeff, mean)
