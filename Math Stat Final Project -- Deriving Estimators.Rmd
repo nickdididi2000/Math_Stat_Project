@@ -3,13 +3,44 @@ title: "Math Stat Final Project -- Deriving Estimators"
 output: html_document
 ---
 
-## OLS
+## Introduction
 
-We can write the the linear regression model in matrix notation as $\mathbf{y} = \mathbf{X}\boldsymbol\beta  + \boldsymbol\epsilon,$ where $E[\boldsymbol\epsilon] = \mathbf{0}$. In this notation $\mathbf{y}$ is the vector of outcomes, $\boldsymbol\beta$ is the vector of covariates, and $\mathbf{X}$ is the matrix of covariates: 
+## Background
+
+### Ordinary Least Squares Estimation
+
+In ordinary least squares estimation (OLS), we attempt to find a linear model that best fits the data. Our model is a polynomial $\hat{y} = \beta_0 +\beta_1x_1 + \beta_2x_2 + \space ...  \space + \beta_nx_n$ with unknown coefficients $\beta_0, \space \beta_1, \space \beta_2, \space .., \space \beta_n$. In the method of least squares, we find the values of these coefficients that minimize the distance between the true $y$ values and the predicted $y$ values $\hat{y}$. We define this distance as a residual: $y_i- \hat{y}$. To get an overall estimate of the prediction error of our model, we compute the residual for each observation, square the residuals and sum these values. We can write this as:  
+
+$$
+\sum_{i=1}^n (y_i - \hat{y}_i)^2 = \sum_{i=1}^n (y_i - [\beta_0 +\beta_1x_1 + \space ...  \space + \beta_nx_n])^2
+$$
+We can summarize the least squares method as: 
+$$
+\text{argmin}_{\beta_0,..., \beta_n}\sum_{i=1}^n (y_i - \hat{y}_i)^2
+$$
+Instead of using standard mathematical notation, we can write linear models and the least squares method in matrix notation. In matrix notation, a linear model is written as: 
+
+$$\mathbf{y} = \mathbf{X}\boldsymbol\beta  + \boldsymbol\epsilon, \text{ where } E[\boldsymbol\epsilon] = \mathbf{0}$$.
+
+$\mathbf{y}$ is the vector of outcomes, $\boldsymbol\beta$ is the vector of covariates, and $\mathbf{X}$ is the matrix of covariates: 
 $$\mathbf{y} = \begin{pmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{pmatrix}; \space\boldsymbol\beta = \begin{pmatrix} \beta_0 \\ \beta_1 \\ \vdots \\ \beta_p \end{pmatrix}; \space \mathbf{X} = \begin{pmatrix} 1 & x_{11} & \cdots & x_{p1} \\ 1 & x_{12} & \cdots & x_{p2} \\ \vdots & \vdots & \ddots & \vdots \\ 1 & x_{1n} & \cdots & x_{pn} \end{pmatrix}.$$ 
+The least squares estimation method then becomes: 
 
-$$\mathbf{y} = \mathbf{X}\boldsymbol\beta  + \boldsymbol\epsilon$$
-$$E[\boldsymbol\epsilon] = \mathbf{0}$$
+$$\text{argmin}_{\boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta)$$.
+
+### Problems with Ordinary Least Squares Estimation 
+### Lasso
+### Comparison to Ridge Regression
+### Benefits of Lasso and Ridge Regression
+
+
+## Main Results
+
+### Deriving OLS, Ridge Regression and Lasso Estimators
+
+### OLS
+
+As described above, the OLS problem can be written as $\text{argmin}_{\boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta)$. 
 
 We can derive the OLS estimate for $\boldsymbol\beta$: 
 $$
@@ -33,9 +64,7 @@ $$
 
 \end{aligned}
 $$
-In a simple case, where $\mathbf{X}$ is a diagonal matrix with 1's on the diagonals and 0's on all the off diagonals, where the number of predictors equals the number of cases, and where the intercept goes through the origin, the OLS solution is $\boldsymbol\beta = \mathbf{y}$.  
-
-## Ridge Regression
+#### Ridge Regression
 
 In ridge regression, the formula we are trying to minimize is $\sum_{i=1}^n(y_i - \beta_0 - \sum_{j=1}^p\beta_j x_{ij})^2 + \lambda\sum_{j=1}^p \beta_j^2$. We can write this in matrix notation as: $(\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta) + \lambda \boldsymbol\beta^T\boldsymbol\beta$. We can minimize this in much the same way as in OLS: 
 
@@ -61,9 +90,12 @@ $$
 \end{aligned}
 $$
 
-In a simple case, where $\mathbf{X}$ is a diagonal matrix with 1's on the diagonals and 0's on all the off diagonals, where the number of predictors equals the number of cases, and we force the intercept to go through the origin, the ridge regression solution is $\boldsymbol\beta = \frac{\mathbf{y}}{1+\lambda}$.  
 
-## Lasso 
+#### Considering a Simple Case
+  We can consider a simple case: $\mathbf{X}$ is a diagonal matrix with 1's on the diagonals and 0's on all the off diagonals, the number of predictors equals the number of cases, and we force the intercept to go through the origin. This case allows us simplify our OLS and ridge regression estimators. For OLS, the solution is $\boldsymbol\beta = \mathbf{y}$ and for ridge regression the solution becomes $\boldsymbol\beta = \frac{\mathbf{y}}{1+\lambda}$. 
+  Applying this simple case to find the estimators is helpful particularly for Lasso. Unlike OLS and Ridge Regression, there is no closed form solution for $\boldsymbol\beta$. To derive any estimators for Lasso, we must consider this simple case. 
+  
+#### Lasso Estimators in a Simple Case
 
 For lasso, we can not find a general closed form solution for $\boldsymbol\beta$, so we will derive the lasso estimates for $\boldsymbol\beta$ for the simple case described above. We will not use matrix notation in order to easily apply the assumptions of our simple case. 
 
@@ -128,6 +160,49 @@ $$
 
 \end{aligned}
 $$
+
+
+#### Visualizing the Simple Case Estimators
+
+```{r}
+library(ggplot2)
+lambda <- 2
+ols <- function(x) x
+ridge <- function(x) x/(1+lambda)
+lasso <-function(x) ifelse(x > lambda/2, x-lambda/2,
+   ifelse(x < -lambda/2, x+lambda/2, 
+   ifelse( -lambda/2 <= x & x <= lambda/2, 0, 0)))
+
+
+ggplot() +
+  xlim(-2, 2)+
+  geom_function(fun = ols,
+                aes(color = 'OLS'),
+                linetype = "dashed") +
+  geom_function (fun = ridge,
+                 aes(color = 'Ridge'),
+                 lwd = 1.2)+
+  geom_function(fun = lasso,
+                aes(color = 'Lasso'),
+                lwd = 1.2) +
+  theme_bw()+
+  theme(panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank())+
+  scale_color_manual(name = 'Models',
+                     breaks = c('OLS', 'Ridge', 'Lasso'),
+                     values = c('OLS'='gray54', 'Ridge'='olivedrab3', 'Lasso'='tan2'))+
+  labs(y = "Coefficient Estimates", x = "yj")
+  
+```
+DESCRIPTION OF WHAT THIS TELLS US 
+
+### Simulation
+
+
+
+
+
+
 
 
 
