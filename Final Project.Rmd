@@ -258,9 +258,26 @@ ggplot() +
 ```
 DESCRIPTION OF WHAT THIS TELLS US 
 
-### Simulation
+## Simulation
 
 
+
+
+## References
+
+1. Gunes, Funda. “Penalized Regression Methods for Linear Models in SAS/STAT®.” SAS
+ Institute, Inc. 2015, p. 1. 
+ 
+2. James, Gareth, et al. “The Lasso.” An Introduction to Statistical Learning: with Applications in 		R. New York, Springer, 2013.
+
+3. “Lasso (statistics).” Wikipedia. Wikimedia Foundation, 13 Feb. 2022,
+https://en.wikipedia.org/wiki/Lasso_(statistics)
+
+4. Ranstam, J. Cook, J. A. “LASSO regression.” British Journal of Surgery, vol. 105, iss. 10, 2018,
+ p. 1348.
+
+5. Tibshirani, Robert. “Regression Shrinkage and Selection via the Lasso.” Journal of the Royal
+Statistical Society. Series B (Methodological), vol. 58, no. 1, 1996, pp. 267–88.
 
 
 
