@@ -1,5 +1,5 @@
 ---
-title: "Math Stat Final Project -- Deriving Estimators"
+title: "Final Project"
 output: html_document
 ---
 
@@ -13,7 +13,7 @@ Ellery to do list:
   
 Questions for Kelsey: 
   
-  - lasso simple case thing 
+  - last step for lasso simple case thing 
 
 ## Introduction
 
