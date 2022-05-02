@@ -1,8 +1,8 @@
 ---
-
 title: "Final Project"
-output: html_document
-
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 Ellery to do list:
@@ -278,11 +278,3 @@ https://en.wikipedia.org/wiki/Lasso_(statistics)
 
 5. Tibshirani, Robert. “Regression Shrinkage and Selection via the Lasso.” Journal of the Royal
 Statistical Society. Series B (Methodological), vol. 58, no. 1, 1996, pp. 267–88.
-
-
-
-
-
-
-
-

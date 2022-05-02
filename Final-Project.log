@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2022/dev) (preloaded format=pdflatex 2022.2.28)  1 MAY 2022 17:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2022/dev) (preloaded format=pdflatex 2022.2.28)  2 MAY 2022 11:14
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -441,48 +441,23 @@ LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
 (/Users/Will/Library/TinyTeX/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 149.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 149.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 149.
-[1
 
-{/Users/Will/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-<lasso_vis.png, id=30, 367.3725pt x 396.48125pt>
-File: lasso_vis.png Graphic file (type png)
-<use lasso_vis.png>
-Package pdftex.def Info: lasso_vis.png  used on input line 225.
-(pdftex.def)             Requested size: 367.37718pt x 396.48631pt.
-[2]
-<ridge_vis.png, id=42, 354.32375pt x 402.50375pt>
-File: ridge_vis.png Graphic file (type png)
-<use ridge_vis.png>
-Package pdftex.def Info: ridge_vis.png  used on input line 251.
-(pdftex.def)             Requested size: 354.32288pt x 402.50276pt.
+! LaTeX Error: Unicode character 𝛌 (U+1D6CC)
+               not set up for use with LaTeX.
 
-Underfull \hbox (badness 10000) in paragraph at lines 251--253
-[][] \T1/lmr/m/n/10 The only dif-fer-ence
- []
-
-[3 <./lasso_vis.png>]
-
-! Package amsmath Error: \begin{aligned} allowed only in math mode.
-
-See the amsmath package documentation for explanation.
+See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.274 
-       
+l.186 selecting the tuning parameter 𝛌
+                                         , and some of the limitations of the 
 Here is how much of TeX's memory you used:
- 10935 strings out of 480236
- 169977 string characters out of 5895115
- 471926 words of memory out of 5000000
- 28695 multiletter control sequences out of 15000+600000
- 525674 words of font info for 76 fonts, out of 8000000 for 9000
+ 10850 strings out of 480236
+ 168942 string characters out of 5895115
+ 454715 words of memory out of 5000000
+ 28654 multiletter control sequences out of 15000+600000
+ 493886 words of font info for 49 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 60i,9n,63p,408b,332s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 60i,4n,63p,247b,288s stack positions out of 5000i,500n,10000p,200000b,80000s
 
 !  ==> Fatal error occurred, no output PDF file produced!
