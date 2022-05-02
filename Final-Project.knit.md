@@ -1,4 +1,5 @@
 ---
+<<<<<<< HEAD:Final-Project.knit.md
 title: "Penalized Regression"
 author:
 - name: Will Orser
@@ -16,6 +17,13 @@ output:
 
 
 
+title: "Final Project"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
 Ellery to do list:
 
   - finish background section!
@@ -23,19 +31,19 @@ Ellery to do list:
   - citations for background section and deriving estimators
   
 
-## Introduction
+## I. Introduction
 
 |     Lasso, an abbreviation for “least absolute shrinkage and selection operator”, was developed independently in the field of geophysics in 1986 (“Lasso (statistics)”). The technique was rediscovered, named, and popularized by statistician Robert Tibshirani in 1996, in his paper “Regression Shrinkage and Selection via the Lasso”. The topic of lasso stood out to our group as an option for the final project because we have all had experiences applying the technique in our Machine Learning courses. Lasso is also connected to the section of our Mathematical Statistics course devoted to linear models. In particular, lasso was developed as a method to overcome certain complaints that data analysts had with ordinary least squares (OLS) regression models, namely, prediction accuracy and interpretation. OLS estimates often have low bias but high variance, meaning that prediction accuracy can sometimes be improved by shrinking or setting to zero some regression coefficients. Further, OLS models typically contain a large number of predictors; we often would like to narrow this down to a smaller subset that exhibits the strongest effects (Tibshirani 1).
-|     Lasso falls under the category of penalized or regularized regression methods. Penalized regression methods keep all the predictor variables in a model but constrain or regularize their regression coefficients by shrinking them towards zero. In certain cases, if the amount of shrinkage is large enough, these methods can also serve as variable selection techniques by shrinking some coefficients to zero (Gunes 3). This is the case with lasso, which provides both variable selection and regularization to enhance the prediction accuracy and the interpretability of the resulting statistical model. Lasso was originally developed for use on linear regression models, but is easily extended to other statistical models including generalized linear models, generalized estimating equations, and proportional hazards models (“Lasso (statistics)”). In terms of real world applications, lasso is commonly used to handle genetic data because the number of potential predictors is often large relative to the number of observations and there is often little prior knowledge to inform variable selection (Ranstam & Cook 1). 
+|     Lasso falls under the category of penalized or regularized regression methods. Penalized regression methods keep all the predictor variables in a model but constrain or regularize their regression coefficients by shrinking them towards zero. In certain cases, if the amount of shrinkage is large enough, these methods can also serve as variable selection techniques by shrinking some coefficients to zero (Gunes 3). This is the case with lasso, which provides both variable selection and regularization to enhance the prediction accuracy and the interpretability of the resulting statistical model. Lasso was originally developed for use on linear regression models, but is easily extended to other statistical models including generalized linear models, generalized estimating equations, and proportional hazards models (“Lasso (statistics)”). 
 |     The sources we explored to learn about lasso in greater depth were “LASSO regression”, a brief overview of the technique written by J. Ranstam and J.A. Cook, Tibshirani’s paper mentioned above, and the chapter on lasso in An Introduction to Statistical Learning (ISLR; a statistics textbook commonly used in Machine Learning courses) by Gareth James et al. 
 |     Ranstam and Cook provide a nice introductory look into lasso, explaining the motivation behind the method (standard regression models often overfit the data and overestimate the model’s predictive power), a general description of how lasso works including the role of cross-validation in selecting the tuning parameter $\lambda$, and some of the limitations of the method. 
 |     Tibshirani’s paper proposes a new method for estimation in linear models (“the lasso”), explains the mathematical derivation of this method, and presents the results of various simulation studies, comparing the novel method to more established methods of variable selection and regularization, subset selection and ridge regression. Tibshirani concludes by examining the relative merits of the three methods in different scenarios, stating that lasso performs best in situations where the predictors represent a small to medium number of moderate-sized effects.
 |     ISLR provided us with the most comprehensive (and understandable) look into lasso. ISLR explains the mathematics involved in lasso and provides an in-depth comparison to ridge regression at the mathematical, geometrical, and functional levels. The textbook concludes that neither method will universally dominate the other, but that lasso tends to perform better in situations where only a relatively small number of predictors have substantial coefficients, while ridge regression tends to perform better when the response variable is a function of many predictors, all with coefficients of relatively equal size. Finally, ISLR proved extremely useful to us because it included various graphs and visualizations that illustrate how and why lasso works the way it does.
-|     In Section 2 of this report, we will describe the mathematical underpinnings of the lasso method. This will include the general form and notation used in lasso, an explanation of the “penalty term”, and alternate interpretations of how lasso achieves regularization and variable selection. In Section 3, we will provide our main results, essentially showing lasso in action. This will include an illustrative example of the lasso technique on a simulated dataset. We will introduce the set-up for a simulation experiment using R that demonstrates the merits and drawbacks of using lasso in comparison to OLS regression. Then, we will compare relevant aspects of the models: regression coefficients, error metrics, and the bias and variance of model predictions. Section 4 will be concluding remarks and a restatement of the main takeaways from our research.
+|     In Section II of this report, we will describe the mathematical underpinnings of the lasso method. This will include the general form and notation used in lasso, an explanation of the “penalty term”, and alternate interpretations of how lasso achieves regularization and variable selection. In Section III, we will provide our main results, essentially showing lasso in action. This will include an illustrative example of the lasso technique on a simulated dataset. We will introduce the set-up for a simulation experiment using R that demonstrates the merits and drawbacks of using lasso in comparison to OLS regression. Then, we will compare relevant aspects of the models: regression coefficients, error metrics, and the bias and variance of model predictions. Section IV will be concluding remarks and a restatement of the main takeaways from our research.
 
 
 
-## Background
+## II. Background
 
 ### Ordinary Least Squares Estimation
 
@@ -105,7 +113,7 @@ With two predictors, the constraint region becomes a circle: $\beta_1^2 + \beta_
 
 
 
-## Main Results
+## III. Main Results
 
 ### Deriving OLS, Ridge Regression and Lasso Estimators
 
@@ -273,7 +281,7 @@ ggplot() +
   labs(y = "Coefficient Estimates", x = "yj")
 ```
 
-![](Final-Project_files/figure-latex/unnamed-chunk-1-1.pdf)<!-- --> 
+![](Final-Project_files/figure-latex/unnamed-chunk-1-1.pdf)
 
 
 ## Deriving Bias and Variance of OLS and Ridge Regression Estimators
@@ -416,9 +424,20 @@ Lasso, unlike OLS and ridge regression, does not have closed form solutions for 
 ## Simulation
 
 
+## IV. Discussion
 
 
-## References
+|     To conclude our report, we will briefly discuss the relevance, limitations, and applications of lasso regression. Lasso is relevant because of its ability to address the shortcomings of OLS regression models. Specifically, lasso is able to account for multicollinearity of predictor variables and correct for overfitting in situations with a large number of predictors. Furthermore, unlike some penalized regression methods (e.g., ridge regression) lasso has the ability to perform variable selection, by shrinking the regression coefficients of certain predictors to zero, thus improving model interpretability. 
+	
+|     In Section III, we included relevant outputs and visualizations from a simulation experiment in which we compared the performance of lasso and OLS in modeling a fictitious dataset. There were two main takeaways from our simulation experiment. First, lasso, unlike OLS, performs variable selection by shrinking the coefficients of uninformative predictors to zero. In the coefficient output tables, we saw that lasso set the coefficients of uninformative predictors (which we had given a true value of zero in the data creation stage) to zero, while OLS gave these variables very small nonzero coefficient values. Thus, lasso helps to simplify the model (and prevent overfitting) by eliminating predictors with negligible effects on the output. The second main takeaway was that lasso, in comparison to OLS, provides an advantage in terms of the bias-variance tradeoff. The density plots from our simulations show how lasso returns predictor coefficient estimates that are slightly more biased, but much less variable. 
+
+|     In spite of the results of our simulation, it is important to recognize that lasso is not a cure-all for the issues of overfitting and multicollinearity and does not remove the need to validate a model on a test dataset. The primary limitation of lasso is that it trades off potential bias in estimating individual parameters for a better expected overall prediction. In other words, under the lasso approach, regression coefficients may not be reliably interpreted in terms of independent risk factors, as the model’s focus is on the best combined prediction, not the accuracy of the estimation and interpretation of the contribution of individual variables. Also, lasso may underperform in comparison to ridge regression in situations where the predictor variables account for a large number of small effects on the response variable. 
+
+|     In the real world, lasso is commonly used to handle genetic data because the number of potential predictors is often large relative to the number of observations and there is often little prior knowledge to inform variable selection (Ranstam & Cook 1). Lasso also has applications in economics and finance, helping to predict events like corporate bankruptcy. Besides these specific fields of application, lasso is also implementable in any situation where multiple linear regression would apply. Multiple linear regression has wide-ranging applications, but to provide a specific example, it is often used in medical research. Researchers may want to test whether there is a relationship between various categorical variables (e.g., drug treatment group, patient sex), quantitative variables (e.g., patient age, cardiac output), and a quantitative outcome (e.g., blood pressure). Multiple linear regression allows researchers to test for this relationship, as well as quantify its direction and strength. Lasso regression may come into play in scenarios where multicollinearity exists (e.g., patient height and weight), there are a large number of predictors (and it is likely some are uninformative), and when it is important to have less-variable predictions for model coefficients. 
+
+
+
+## V. References
 
 1. Gunes, Funda. “Penalized Regression Methods for Linear Models in SAS/STAT®.” SAS
  Institute, Inc. 2015, p. 1. 
@@ -433,11 +452,3 @@ https://en.wikipedia.org/wiki/Lasso_(statistics)
 
 5. Tibshirani, Robert. “Regression Shrinkage and Selection via the Lasso.” Journal of the Royal
 Statistical Society. Series B (Methodological), vol. 58, no. 1, 1996, pp. 267–88.
-
-
-
-
-
-
-
-
