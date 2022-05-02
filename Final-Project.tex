@@ -4,17 +4,14 @@
 %
 \documentclass[
 ]{article}
-\title{Math Stat Final Project -- Deriving Estimators}
-\author{}
-\date{\vspace{-2.5em}}
-
-\usepackage{amsmath,amssymb}
 \usepackage{lmodern}
-\usepackage{iftex}
-\ifPDFTeX
+\usepackage{amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
   \usepackage[T1]{fontenc}
   \usepackage[utf8]{inputenc}
   \usepackage{textcomp} % provide euro and other symbols
+  \usepackage{amssymb}
 \else % if luatex or xetex
   \usepackage{unicode-math}
   \defaultfontfeatures{Scale=MatchLowercase}
@@ -40,7 +37,7 @@
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \hypersetup{
-  pdftitle={Math Stat Final Project -- Deriving Estimators},
+  pdftitle={Penalized Regression},
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
 \urlstyle{same} % disable monospaced font for URLs
@@ -102,13 +99,21 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{-\maxdimen} % remove section numbering
-\ifLuaTeX
+\ifluatex
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
+
+\title{Penalized Regression}
+\author{true \and true \and true}
+\date{5/02/2022}
 
 \begin{document}
 \maketitle
 
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
 Ellery to do list:
 
 \begin{itemize}
@@ -116,26 +121,99 @@ Ellery to do list:
 \item
   finish background section!
 \item
-  add in bias and variance of OLS and ridge estimators --\textgreater{}
-  describe connection to simulation for lasso
-\item
-  describe graph for simple case
-\item
   relationship between s and lambda ??
 \item
   citations for background section and deriving estimators
 \end{itemize}
 
-Questions for Kelsey:
-
-\begin{itemize}
-\tightlist
-\item
-  lasso simple case thing
-\end{itemize}
-
 \hypertarget{introduction}{%
 \subsection{Introduction}\label{introduction}}
+
+~~~~Lasso, an abbreviation for ``least absolute shrinkage and selection
+operator'', was developed independently in the field of geophysics in
+1986 (``Lasso (statistics)''). The technique was rediscovered, named,
+and popularized by statistician Robert Tibshirani in 1996, in his paper
+``Regression Shrinkage and Selection via the Lasso''. The topic of lasso
+stood out to our group as an option for the final project because we
+have all had experiences applying the technique in our Machine Learning
+courses. Lasso is also connected to the section of our Mathematical
+Statistics course devoted to linear models. In particular, lasso was
+developed as a method to overcome certain complaints that data analysts
+had with ordinary least squares (OLS) regression models, namely,
+prediction accuracy and interpretation. OLS estimates often have low
+bias but high variance, meaning that prediction accuracy can sometimes
+be improved by shrinking or setting to zero some regression
+coefficients. Further, OLS models typically contain a large number of
+predictors; we often would like to narrow this down to a smaller subset
+that exhibits the strongest effects (Tibshirani 1).\\
+\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}Lasso
+falls under the category of penalized or regularized regression methods.
+Penalized regression methods keep all the predictor variables in a model
+but constrain or regularize their regression coefficients by shrinking
+them towards zero. In certain cases, if the amount of shrinkage is large
+enough, these methods can also serve as variable selection techniques by
+shrinking some coefficients to zero (Gunes 3). This is the case with
+lasso, which provides both variable selection and regularization to
+enhance the prediction accuracy and the interpretability of the
+resulting statistical model. Lasso was originally developed for use on
+linear regression models, but is easily extended to other statistical
+models including generalized linear models, generalized estimating
+equations, and proportional hazards models (``Lasso (statistics)''). In
+terms of real world applications, lasso is commonly used to handle
+genetic data because the number of potential predictors is often large
+relative to the number of observations and there is often little prior
+knowledge to inform variable selection (Ranstam \& Cook 1).\\
+\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}The
+sources we explored to learn about lasso in greater depth were ``LASSO
+regression'', a brief overview of the technique written by J. Ranstam
+and J.A. Cook, Tibshirani's paper mentioned above, and the chapter on
+lasso in An Introduction to Statistical Learning (ISLR; a statistics
+textbook commonly used in Machine Learning courses) by Gareth James et
+al.~\\
+\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}Ranstam
+and Cook provide a nice introductory look into lasso, explaining the
+motivation behind the method (standard regression models often overfit
+the data and overestimate the model's predictive power), a general
+description of how lasso works including the role of cross-validation in
+selecting the tuning parameter \(\lambda\), and some of the limitations
+of the method.\\
+\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}Tibshirani's
+paper proposes a new method for estimation in linear models (``the
+lasso''), explains the mathematical derivation of this method, and
+presents the results of various simulation studies, comparing the novel
+method to more established methods of variable selection and
+regularization, subset selection and ridge regression. Tibshirani
+concludes by examining the relative merits of the three methods in
+different scenarios, stating that lasso performs best in situations
+where the predictors represent a small to medium number of
+moderate-sized effects.\\
+\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}ISLR
+provided us with the most comprehensive (and understandable) look into
+lasso. ISLR explains the mathematics involved in lasso and provides an
+in-depth comparison to ridge regression at the mathematical,
+geometrical, and functional levels. The textbook concludes that neither
+method will universally dominate the other, but that lasso tends to
+perform better in situations where only a relatively small number of
+predictors have substantial coefficients, while ridge regression tends
+to perform better when the response variable is a function of many
+predictors, all with coefficients of relatively equal size. Finally,
+ISLR proved extremely useful to us because it included various graphs
+and visualizations that illustrate how and why lasso works the way it
+does.\\
+\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}\hspace*{0.333em}In
+Section 2 of this report, we will describe the mathematical
+underpinnings of the lasso method. This will include the general form
+and notation used in lasso, an explanation of the ``penalty term'', and
+alternate interpretations of how lasso achieves regularization and
+variable selection. In Section 3, we will provide our main results,
+essentially showing lasso in action. This will include an illustrative
+example of the lasso technique on a simulated dataset. We will introduce
+the set-up for a simulation experiment using R that demonstrates the
+merits and drawbacks of using lasso in comparison to OLS regression.
+Then, we will compare relevant aspects of the models: regression
+coefficients, error metrics, and the bias and variance of model
+predictions. Section 4 will be concluding remarks and a restatement of
+the main takeaways from our research.
 
 \hypertarget{background}{%
 \subsection{Background}\label{background}}
@@ -177,6 +255,9 @@ The least squares estimation method then becomes:
 \hypertarget{problems-with-ordinary-least-squares-estimation}{%
 \subsubsection{Problems with Ordinary Least Squares
 Estimation}\label{problems-with-ordinary-least-squares-estimation}}
+
+\hypertarget{overfitting}{%
+\paragraph{Overfitting}\label{overfitting}}
 
 \hypertarget{lasso}{%
 \subsubsection{Lasso}\label{lasso}}
@@ -251,9 +332,26 @@ to the one above:
 \includegraphics{ridge_vis.png} The only difference between lasso and
 ridge regression are their constraint regions.
 
+\hypertarget{variable-selection}{%
+\subsubsection{Variable Selection}\label{variable-selection}}
+
 \hypertarget{benefits-of-lasso-and-ridge-regression}{%
 \subsubsection{Benefits of Lasso and Ridge
 Regression}\label{benefits-of-lasso-and-ridge-regression}}
+
+Both lasso and ridge regression are able to make more accurate
+predictions than OLS in many contexts. Lasso and ridge regression are
+often more accurate than OLS because they sacrifice a small increase in
+bias for a significant reduction in variance. Both ridge regression and
+lasso perform well in a variety of contexts, but the variable selection
+property of lasso is a significant advantage. Lasso models have fewer
+predictors, making them easier to interpret. Ridge regression, because
+it includes every variable in the model, outperforms lasso when all of
+the predictors are related to the outcome. On the other hand, lasso
+outperforms ridge regression when only a few of the predictors are
+related to the outcome. In the main results section, we will derived the
+variance of OLS and ridge regression estimators and perform a simulation
+to examine bias and variance in lasso estimators.
 
 \hypertarget{main-results}{%
 \subsection{Main Results}\label{main-results}}
@@ -272,21 +370,22 @@ We can derive the OLS estimate for \(\boldsymbol\beta\): \$\$
 
 \begin{aligned}
 
-\text{argmin}_{\boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta) \\ 
+&\text{argmin}_{\boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta) \\
 
-= \frac{\partial}{\partial \boldsymbol\beta} (\mathbf{y}^\top \mathbf{y} - \mathbf{y}^\top\mathbf{X}\boldsymbol\beta  - \boldsymbol\beta^T\mathbf{X}^Ty + \boldsymbol\beta^\top \mathbf{X}^\top \mathbf{X} \boldsymbol\beta) \\
+&= \frac{\partial}{\partial \boldsymbol\beta} (\mathbf{y}^\top \mathbf{y} - \mathbf{y}^\top\mathbf{X}\boldsymbol\beta  - \boldsymbol\beta^T\mathbf{X}^Ty + \boldsymbol\beta^\top \mathbf{X}^\top \mathbf{X} \boldsymbol\beta) \\ 
 
-= \frac{\partial}{\partial \boldsymbol\beta} (\mathbf{y}^\top \mathbf{y} - 2\mathbf{y}^\top\mathbf{X}\boldsymbol\beta + \boldsymbol\beta^\top \mathbf{X}^\top \mathbf{X} \boldsymbol\beta) \\
 
-= -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta \\
+&= \frac{\partial}{\partial \boldsymbol\beta} (\mathbf{y}^\top \mathbf{y} - 2\mathbf{y}^\top\mathbf{X}\boldsymbol\beta + \boldsymbol\beta^\top \mathbf{X}^\top \mathbf{X} \boldsymbol\beta) \\
 
-0 \stackrel{set}{=} -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta \\
+&= -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta \\
 
-2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta = 2\mathbf{X}^\top\mathbf{y} \\ 
+0 &\stackrel{set}{=} -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta \\
 
-(\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^\top \mathbf{X} \boldsymbol\beta = (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y} \\ 
+2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta &= 2\mathbf{X}^\top\mathbf{y} \\ 
 
- \boldsymbol\beta = (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y}
+(\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^\top \mathbf{X} \boldsymbol\beta &= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y} \\ 
+
+ \hat{\boldsymbol\beta}& = (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y}
 
 \end{aligned}
 
@@ -302,21 +401,21 @@ We can minimize this in much the same way as in OLS:
 
 \begin{aligned}
 
-\text{argmin}_{\boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta) + \lambda \boldsymbol\beta^T\boldsymbol\beta \\ 
+&\text{argmin}_{\boldsymbol\beta} (\mathbf{y} - \mathbf{X}\boldsymbol\beta)^\top(\mathbf{y} - \mathbf{X}\boldsymbol\beta) + \lambda \boldsymbol\beta^T\boldsymbol\beta \\ 
 
-= \frac{\partial}{\partial \boldsymbol\beta} (\mathbf{y}^\top \mathbf{y} - 2\mathbf{y}^\top\mathbf{X}\boldsymbol\beta + \boldsymbol\beta^\top \mathbf{X}^\top \mathbf{X} \boldsymbol\beta + \lambda \boldsymbol\beta^T\boldsymbol\beta) \\
+&= \frac{\partial}{\partial \boldsymbol\beta} (\mathbf{y}^\top \mathbf{y} - 2\mathbf{y}^\top\mathbf{X}\boldsymbol\beta + \boldsymbol\beta^\top \mathbf{X}^\top \mathbf{X} \boldsymbol\beta + \lambda \boldsymbol\beta^T\boldsymbol\beta) \\
 
-= -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta + 2\lambda\boldsymbol\beta \\
+&= -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta + 2\lambda\boldsymbol\beta \\
 
-0 \stackrel{set}{=} -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta + 2\lambda\boldsymbol\beta\\
+0 &\stackrel{set}{=} -2\mathbf{X}^\top\mathbf{y} + 2 \mathbf{X}^\top \mathbf{X} \boldsymbol\beta + 2\lambda\boldsymbol\beta\\
 
-\mathbf{X}^\top \mathbf{X} \boldsymbol\beta + \lambda\boldsymbol\beta = \mathbf{X}^\top\mathbf{y} \\ 
+\mathbf{X}^\top \mathbf{X} \boldsymbol\beta + \lambda\boldsymbol\beta &= \mathbf{X}^\top\mathbf{y} \\ 
 
-(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) \boldsymbol\beta = \mathbf{X}^\top\mathbf{y} \\ 
+(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) \boldsymbol\beta &= \mathbf{X}^\top\mathbf{y} \\ 
 
-(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\boldsymbol\beta = \mathbf{X}^\top\mathbf{y}(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\\ 
+(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\boldsymbol\beta &= \mathbf{X}^\top\mathbf{y}(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\\ 
 
-\boldsymbol\beta = \mathbf{X}^\top\mathbf{y}(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\\ 
+\boldsymbol\beta &= \mathbf{X}^\top\mathbf{y}(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\\ 
 
 \end{aligned}
 
@@ -376,13 +475,13 @@ With these assumptions, we can find a closed form solution for
 
 \begin{aligned}
 
-\text{argmin}_{\beta}(y_i - \beta_1)^2 + \lambda|\beta_1| \\ 
+&\text{argmin}_{\beta}(y_i - \beta_1)^2 + \lambda|\beta_1| \\ 
 
-= \frac{\partial}{\partial \beta} \left( (y_j - \beta_1)^2 + \lambda|\beta_1| \right) \\
+&= \frac{\partial}{\partial \beta} \left( (y_j - \beta_1)^2 + \lambda|\beta_1| \right) \\
 
-= \frac{\partial}{\partial \beta} \left( y_j^2 - 2y_j\beta_1 + \beta_1^2 + \lambda|\beta_1| \right) \\
+&= \frac{\partial}{\partial \beta} \left( y_j^2 - 2y_j\beta_1 + \beta_1^2 + \lambda|\beta_1| \right) \\
 
-=  - 2y_j + 2\beta_1 + \lambda sign(\beta_1) \\
+&=  - 2y_j + 2\beta_1 + \lambda sign(\beta_1) \\
 
 \end{aligned}
 
@@ -397,35 +496,55 @@ when \(\beta_1 < 0\), (2) when \(\beta_1 > 0\) and (3) when
   when \(\beta_1 < 0\) or when \(y_j < - \lambda/2\):
 \end{enumerate}
 
-\$\$ \textbackslash begin\{aligned\}
+\$\$
 
-0 \stackrel{set}{=} - 2y\_j + 2\beta\_1 - \lambda \textbackslash{}
+\begin{aligned}
 
-\beta\_1 = y\_j + \lambda/2 \textbackslash{}
+0 &\stackrel{set}{=} - 2y_j + 2\beta_1 - \lambda \\
 
-\textbackslash{} \[
+\beta_1 &= y_j + \lambda/2 \\
+
+\end{aligned}
+
+\[
 (2) when $\beta_1 > 0$ or when $y_j > \lambda/2$: 
 \]
 
-0 \stackrel{set}{=} - 2y\_j + 2\beta\_1 + \lambda \textbackslash{}
+\begin{aligned}
 
-\beta\_1 = y\_j - \lambda/2 \textbackslash{}
+0 &\stackrel{set}{=} - 2y_j + 2\beta_1 + \lambda \\
 
-\textbackslash{}
+\beta_1 &= y_j - \lambda/2 \\
+
+\end{aligned}
 
 \[
 (3) when $\beta_1 = 0$ ASK KELSEY
 \]
 
-\text{when } \beta\_1 = 0 \text{ or when }----: \textbackslash{}
+\text{when } \beta\_1 = 0 \text{ or when } \textbar y\_i\textbar{}
+\le \lambda/2 : \textbackslash{}
 
-0 \text{ when } \textbar y\_i\textbar{} \le \lambda/2
+0
 
 \$\$
 
 \hypertarget{visualizing-the-simple-case-estimators}{%
 \paragraph{Visualizing the Simple Case
 Estimators}\label{visualizing-the-simple-case-estimators}}
+
+The graph below shows the simple case coefficient estimates for OLS,
+ridge regression and lasso as a function of the data \(y_j\). We can see
+from that graph, and from the equations derived above, that ridge
+regression scales the coefficient estimates by the same factor,
+\(1/(1+\lambda)\), regardless of the value of \(y_j\). Since it is
+impossible to divide a non-zero number by any value and get 0, ridge
+regression cannot set any coefficient to zero unless it is already 0.
+However, lasso performs shrinkage in a different way, allowing some
+coefficients to be 0. Lasso changes the values of the coefficients by
+adding or subtracting \(\lambda/2\), depending on the corresponding
+\(y_j\). If \(y_j\) is inside the region \((-\lambda/2, \lambda/2)\),
+the coefficient is shrunk to 0.
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -460,9 +579,228 @@ Estimators}\label{visualizing-the-simple-case-estimators}}
 \end{Shaded}
 
 \includegraphics{Final-Project_files/figure-latex/unnamed-chunk-1-1.pdf}
-DESCRIPTION OF WHAT THIS TELLS US
+
+\hypertarget{deriving-bias-and-variance-of-ols-and-ridge-regression-estimators}{%
+\subsection{Deriving Bias and Variance of OLS and Ridge Regression
+Estimators}\label{deriving-bias-and-variance-of-ols-and-ridge-regression-estimators}}
+
+\hypertarget{ols-1}{%
+\subsubsection{OLS}\label{ols-1}}
+
+\hypertarget{bias}{%
+\paragraph{Bias}\label{bias}}
+
+We will assume that
+\(\mathbf{y} = \mathbf{X}\boldsymbol\beta + \boldsymbol\epsilon\) and
+that \(E[\boldsymbol\epsilon] = \mathbf{0}\). We can show that the least
+squares estimator
+\(\hat{\boldsymbol\beta} = (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y}\)
+is an unbiased estimator of \(\boldsymbol\beta\):
+
+\$\$
+
+\begin{aligned}
+
+E[\hat{\boldsymbol\beta}_{OLS}] &= E[(\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y}]\\
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top E[\mathbf{y}], \text{ since X is fixed} \\
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top E[\mathbf{X}\boldsymbol\beta  + \boldsymbol\epsilon], \text{ by assumption}\\
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top (\mathbf{X}\boldsymbol\beta  + E[\boldsymbol\epsilon])\\
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top (\mathbf{X}\boldsymbol\beta  + 0), \text{ by assumption}\\
+&=(\mathbf{X}^T\mathbf{X})^{-1} (\mathbf{X}^\top\mathbf{X})\boldsymbol\beta \\
+&= \boldsymbol\beta
+\end{aligned}
+
+\$\$ \#\#\#\# Variance We will assume that
+\(\mathbf{y} = \mathbf{X}\boldsymbol\beta + \boldsymbol\epsilon\),
+\(E[\boldsymbol\epsilon] = \mathbf{0}\) and that
+\(Var[\boldsymbol\epsilon] = \sigma^2 \mathbf{I}\). We can show that the
+variance of the least squares estimator
+\(\hat{\boldsymbol\beta} = (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y}\)
+is
+\(Var[\hat{\boldsymbol\beta}] = \sigma^2(\mathbf{X}^T\mathbf{X})^{-1}\):
+
+\$\$
+
+\begin{aligned}
+
+Var[\hat{\boldsymbol\beta}_{OLS}] &= Var[(\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top\mathbf{y}]\\
+
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top Var[\mathbf{y}]((\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top)^\top, \text{ since } Var(\mathbf{Ax}) = \mathbf{A}Var(\mathbf{x})\mathbf{A}^\top \\
+
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top Var[\mathbf{y}] \mathbf{X}(\mathbf{X}^T\mathbf{X})^{-1}, \text{ since } (\mathbf{AB})^\top = \mathbf{B}^\top\mathbf{A}^\top \text{ and } (\mathbf{A}^{-1})^\top = (\mathbf{A}^\top)^{-1} \\
+
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top Var[\mathbf{X}\boldsymbol\beta  + \boldsymbol\epsilon] \mathbf{X}(\mathbf{X}^T\mathbf{X})^{-1}, \text{ by assumption}\\
+
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top Var[\boldsymbol\epsilon] \mathbf{X}(\mathbf{X}^T\mathbf{X})^{-1}, \text{ since } \mathbf{X} \text{ and } \boldsymbol{\beta} \text{ are fixed}\\
+
+&= (\mathbf{X}^T\mathbf{X})^{-1} \mathbf{X}^\top (\sigma^2\mathbf{I}) \mathbf{X}(\mathbf{X}^T\mathbf{X})^{-1}, \text{ by assumption} \\
+
+&= \sigma^2(\mathbf{X}^T\mathbf{X})^{-1} (\mathbf{X}^\top \mathbf{X})(\mathbf{X}^T\mathbf{X})^{-1} \\
+
+&= \sigma^2(\mathbf{X}^T\mathbf{X})^{-1} \\
+
+\end{aligned}
+
+\$\$
+
+\hypertarget{ridge-regression}{%
+\subsubsection{Ridge Regression}\label{ridge-regression}}
+
+\hypertarget{bias-1}{%
+\paragraph{Bias}\label{bias-1}}
+
+We will assume that
+\(\mathbf{y} = \mathbf{X}\boldsymbol\beta + \boldsymbol\epsilon\) and
+that \(E[\boldsymbol\epsilon] = \mathbf{0}\). We can show that the ridge
+regression estimator
+\(\boldsymbol\beta = (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top\mathbf{y}\)
+is a biased estimator of \(\boldsymbol\beta\):
+
+\$\$
+
+\begin{aligned}
+
+E[\hat{\boldsymbol\beta}_{ridge}] &= E[(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top\mathbf{y}]\\
+
+&= E[(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\mathbf{X}\boldsymbol\beta + \boldsymbol\epsilon)], \text{ by assumption} \\
+
+&= E[(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\mathbf{X}\boldsymbol\beta) + (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\boldsymbol\epsilon)] \\
+
+&= E[(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\mathbf{X}\boldsymbol\beta)] + E[(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\boldsymbol\epsilon)] \\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\mathbf{X}\boldsymbol\beta) + (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top E[(\boldsymbol\epsilon)], \text{ since } \mathbf{X} \text{ and } \boldsymbol{\beta} \text{ are fixed} \\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\mathbf{X}\boldsymbol\beta) + (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (0), \text{ by assumption } \\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top \mathbf{X}\boldsymbol\beta  \\
+
+\end{aligned}
+
+\$\$ Since
+\(E[\hat{\boldsymbol\beta}_{ridge}] = (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top \mathbf{X}\boldsymbol\beta\),
+the ridge regression estimator for \(\boldsymbol{\beta}\) will always be
+biased, unless \(\lambda = 0\). If \(\lambda = 0\), the ridge regression
+estimator is equal to the OLS estimator, which we showed above is
+unbiased.
+
+\hypertarget{variance}{%
+\subsubsection{Variance}\label{variance}}
+
+We will assume that
+\(\mathbf{y} = \mathbf{X}\boldsymbol\beta + \boldsymbol\epsilon\),
+\(E[\boldsymbol\epsilon] = \mathbf{0}\) and that
+\(Var[\boldsymbol\epsilon] = \sigma^2 \mathbf{I}\). We can show that the
+variance of the ridge regression estimator is
+\(\sigma^2(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top \mathbf{X} (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I})^{-1}\):
+
+\$\$
+
+\begin{aligned}
+Var[\hat{\boldsymbol\beta}_{ridge}] &= Var((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top\mathbf{y})\\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top Var(\mathbf{y}) ((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top)^\top, \text{ since } Var(\mathbf{Ax}) = \mathbf{A}Var(\mathbf{x})\mathbf{A}^\top \\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top Var(\mathbf{X}\boldsymbol\beta + \boldsymbol\epsilon) ((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top)^\top, \text{ by assumption } \\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (Var(\mathbf{X}\boldsymbol\beta) + Var(\boldsymbol\epsilon)) ((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top)^\top \\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top Var(\boldsymbol\epsilon) ((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top)^\top, \text{ since } \mathbf{X} \text{ and } \boldsymbol{\beta} \text{ are fixed} \\
+
+&= (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top (\sigma^2\mathbf{I}) ((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top)^\top, \text{ by assumption }  \\
+
+&= \sigma^2(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top) ((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top)^\top \\
+
+&= \sigma^2(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top \mathbf{X} ((\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1})^\top \\
+
+& = \sigma^2(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top \mathbf{X} (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I})^{-1} \\
+
+\end{aligned}
+
+\$\$ We can show that the variance of the ridge regression estimator is
+equal to the variance of the OLS estimator when \(\lambda = 0\):
+
+\$\$
+
+\begin{aligned}
+
+Var[\hat{\boldsymbol\beta}_{ridge}] \text{ when } \lambda = 0: \\
+&= \sigma^2(\mathbf{X}^\top \mathbf{X} + 0\mathbf{I}) ^{-1}\mathbf{X}^\top \mathbf{X} (\mathbf{X}^\top \mathbf{X} + 0\mathbf{I})^{-1} \\
+&= \sigma^2(\mathbf{X}^\top \mathbf{X}) ^{-1}\mathbf{X}^\top \mathbf{X} (\mathbf{X}^\top \mathbf{X})^{-1} \\
+&= \sigma^2(\mathbf{X}^\top \mathbf{X}) ^{-1} = Var[\hat{\boldsymbol\beta}_{OLS}]
+
+\end{aligned}
+
+\$\$ Importantly, the variance of the ridge regression estimator is
+always smaller than the variance of the OLS estimator when
+\(\lambda>0\). To see that this is true, we can consider the case when
+\(\mathbf{X}\) is a 1 by 1 matrix with value 1 ({[}1{]}) and
+\(\lambda = 1\):
+
+\$\$
+
+\begin{aligned}
+
+Var[\hat{\boldsymbol\beta}_{ridge}] &= \sigma^2(\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I}) ^{-1}\mathbf{X}^\top \mathbf{X} (\mathbf{X}^\top \mathbf{X} + \lambda\mathbf{I})^{-1} \\
+
+&= \sigma^2(1 *1 + 1) ^{-1}1*1 (1*1 + 1)^{-1} \\
+
+&= \sigma^2(2) ^{-1}(2)^{-1} \\
+
+&= \frac{\sigma^2}{4} 
+
+\end{aligned}
+
+\[
+\]
+
+\begin{aligned}
+
+Var[\hat{\boldsymbol\beta}_{OLS}] &= \sigma^2(\mathbf{X}^T\mathbf{X})^{-1} \\
+
+&= \sigma^2(1 *1) ^{-1} \\
+
+&= \frac{\sigma^2}{1} = \sigma^2
+
+\end{aligned}
+
+\$\$ From this simple case, we can see that
+\(Var[\hat{\boldsymbol\beta}_{ridge}]\) is smaller than
+\(Var[\hat{\boldsymbol\beta}_{OLS}]\). This holds true for all cases
+when \(\lambda>0\), but the proof of that is beyond the scope of this
+project.
+
+\hypertarget{lasso-1}{%
+\subsubsection{Lasso}\label{lasso-1}}
+
+Lasso, unlike OLS and ridge regression, does not have closed form
+solutions for the bias and variance of its estimator. To examine the
+bias and variance of lasso estimators, we constructed a simulation and
+we discuss the results of the simulation in the next section.
 
 \hypertarget{simulation}{%
-\subsubsection{Simulation}\label{simulation}}
+\subsection{Simulation}\label{simulation}}
+
+\hypertarget{references}{%
+\subsection{References}\label{references}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Gunes, Funda. ``Penalized Regression Methods for Linear Models in
+  SAS/STAT®.'' SAS Institute, Inc.~2015, p.~1.
+\item
+  James, Gareth, et al.~``The Lasso.'' An Introduction to Statistical
+  Learning: with Applications in R. New York, Springer, 2013.
+\item
+  ``Lasso (statistics).'' Wikipedia. Wikimedia Foundation, 13 Feb.~2022,
+  \url{https://en.wikipedia.org/wiki/Lasso_(statistics)}
+\item
+  Ranstam, J. Cook, J. A. ``LASSO regression.'' British Journal of
+  Surgery, vol.~105, iss. 10, 2018, p.~1348.
+\item
+  Tibshirani, Robert. ``Regression Shrinkage and Selection via the
+  Lasso.'' Journal of the Royal Statistical Society. Series B
+  (Methodological), vol.~58, no. 1, 1996, pp.~267--88.
+\end{enumerate}
 
 \end{document}
